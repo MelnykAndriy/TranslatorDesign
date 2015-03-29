@@ -1,0 +1,26 @@
+
+*<
+    Created by Andriy Melnyk on 3/29/15.
+    Purpose: basic translator test.
+>*
+
+PROGRAM test1 ;
+    LABEL 100, 200, 300,
+     *< TODO : remove unused labels>*
+      400;
+
+BEGIN 
+    
+    GOTO 300;
+    
+  100:  *< some comment >*
+    IN 2; 
+    OUT 3;
+  200:
+    GOTO 100;  *< bad programming style >*
+    LINK some_var, 0;
+    
+    GOTO 200;
+  300: 
+  
+END.

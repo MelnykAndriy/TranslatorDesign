@@ -1,0 +1,48 @@
+
+
+# parser 
+
+<signal-program> --> <program> ;
+
+<program> --> PROGRAM <procedure-identifier> ';' 
+                <block> '.' ;
+                
+<block> --> <declarations> 
+            BEGIN
+                <statements-list>
+            END ; 
+               
+<declarations> --> <label-declarations> ;
+
+<label-declarations> --> LABEL <unsigned-integer> <labels-list> ';' |  ; 
+
+<labels-list> --> ',' <unsigned-integer> <labels-list> | ;
+
+<statements-list> --> <statement> <statements-list> | ;
+
+<statement> --> <unsigned-integer> : <statement> 
+                | GOTO <unsigned-integer> ';'
+                | LINK <variable-identifier> ',' <unsigned-integer> ';'
+                | IN <unsigned-integer> ';'
+                | OUT <unsigned-integer> ';' ;
+                
+<variable-identifier> --> <identifier> ;
+
+<procedure-identifier> --> <identifier> ; 
+
+
+# lexer 
+
+<identifier> --> <letter><string> ;
+
+<string> -->  <letter><string> 
+            | <digit><string> 
+            |  ;
+            
+<unsigned-integer> --> <digit> <digits-string> ;
+
+<digits-string> --> <digit> <digits-string> | ;
+
+<digit> --> [0-9] ;
+
+<letter> --> [A-Z] ;
