@@ -3,11 +3,13 @@ __author__ = 'mandriy'
 COMMA = ord(',')
 SEMICOLON = ord(';')
 DOT = ord('.')
+COLON = ord(':')
 
 __single_character_delimiters__ = {
     ',': COMMA,
     ';': SEMICOLON,
-    '.': DOT
+    '.': DOT,
+    ':': COLON
 }
 
 

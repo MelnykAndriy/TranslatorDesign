@@ -31,12 +31,12 @@ class BadKeyword(Exception):
 
 
 def is_keyword(s):
-    return s.upper() in __keywords__.keys()
+    return s in __keywords__.keys()
 
 
 def keyword_code(s):
     try:
-        return __keywords__[s.upper()]
+        return __keywords__[s]
     except KeyError:
         raise BadKeyword()
 

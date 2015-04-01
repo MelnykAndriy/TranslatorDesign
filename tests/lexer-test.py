@@ -1,7 +1,7 @@
 __author__ = 'mandriy'
 
 import unittest
-from lexer.lexer import LexicalAnalysis
+from lexer.lexer import SignalLexicalAnalysis
 from lexer.keywords import is_keyword_code, keyword_code
 from lexer.delimiters import is_delimiter_code, delimiter_code
 from lexer.lexer_utils import is_constant_code, is_identifier_code, InvalidToken, UnclosedComment, PositionMixin
@@ -17,12 +17,12 @@ class LexerTest(unittest.TestCase):
                                             END.'''
 
     def getErrors(self, source):
-        lexer = LexicalAnalysis()
+        lexer = SignalLexicalAnalysis()
         lexer(source)
         return lexer.errors()
 
     def getTokens(self, source):
-        lexer = LexicalAnalysis()
+        lexer = SignalLexicalAnalysis()
         return lexer(source)
 
     def getCountTokens(self):
@@ -61,7 +61,7 @@ class LexerTest(unittest.TestCase):
 
     def test_identfiers_table_filling(self):
         source = 'LINK var2, 0; LINK var1, 0; '
-        lexer = LexicalAnalysis()
+        lexer = SignalLexicalAnalysis()
         tokens = lexer(source)
         ident_tab = lexer.identifiers()
         idents = filter(lambda token: is_identifier_code(token.code()), tokens)
@@ -74,7 +74,7 @@ class LexerTest(unittest.TestCase):
 
     def test_constants_table_filling(self):
         source = 'LABEL 100,200, 300, 400;'
-        lexer = LexicalAnalysis()
+        lexer = SignalLexicalAnalysis()
         tokens = lexer(source)
         constant_table = lexer.constants()
         self.checkNoErrors(lexer)
@@ -113,7 +113,7 @@ class LexerTest(unittest.TestCase):
 
     def test_file_positions(self):
         source = 'GOTO *< GOTO 400; >* 200;\n\tOUT 3;'
-        lexer = LexicalAnalysis()
+        lexer = SignalLexicalAnalysis()
         tokens = lexer(source)
         self.checkNoErrors(lexer)
         self.assertListEqual([(1, 1), (22, 1), (25, 1), (5, 2), (9, 2), (10, 2)],

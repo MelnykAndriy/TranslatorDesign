@@ -5,7 +5,7 @@ import delimiters
 from lexer_utils import *
 
 
-class LexicalAnalysis:
+class SignalLexicalAnalysis:
 
     def __init__(self, predefined_constants=(), predefined_identifiers=()):
         self.__tokens__ = []
