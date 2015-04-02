@@ -1,6 +1,8 @@
 __author__ = 'mandriy'
 
 from lexer.lexer_utils import PositionMixin
+from utils.common_utils import interval
+import pydot
 
 
 class Term(object):
@@ -69,5 +71,27 @@ class InteriorNode(Node):
             func(child, self)
 
 
+def term_to_dot(term, node_style=(), edge_style=()):
+    graph = pydot.Dot(graph_type='graph')
+    ids = interval(0, infinite=True)
+    indexes = [ids.next()]
+
+    def link_edges(node, parent_node):
+        parent_vertex = pydot.Node(indexes[len(indexes) - 1], label=str(parent_node.get_label()), *node_style)
+        indx = ids.next()
+        child_vertex = pydot.Node(indx, label=str(node.get_label()), *node_style)
+        indexes.append(indx)
+        graph.add_node(parent_vertex)
+        graph.add_node(child_vertex)
+        edge = pydot.Edge(parent_vertex, child_vertex, *edge_style)
+        graph.add_edge(edge)
+
+    term.traversal(down_func=link_edges,
+                   up_func=lambda node, parent_node: indexes.pop())
+    return graph
+
+
+def print_term(term):
+    pass
 
 

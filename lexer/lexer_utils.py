@@ -1,13 +1,7 @@
 __author__ = 'mandriy'
 
-
-class PositionMixin(object):
-
-    def __init__(self, position):
-        self._line, self._position = tuple(position)
-
-    def position(self):
-        return self._line, self._position
+from utils.common_utils import interval, PositionMixin
+from utils.errors import CompilingError
 
 
 class Token(PositionMixin):
@@ -24,34 +18,16 @@ class Token(PositionMixin):
         return self._label
 
 
-class LexicalError(PositionMixin):
-
-    def __init__(self, msg, file_coordinates):
-        super(LexicalError, self).__init__(file_coordinates)
-        self._msg = msg
-
-    def what(self):
-        pos, line = self.position()
-        return "%s. Line %d, position %d." % (self._msg, line, pos)
-
-
-class InvalidToken(LexicalError):
+class InvalidToken(CompilingError):
 
     def __init__(self, file_coords):
         super(InvalidToken, self).__init__("Invalid token.", file_coords)
 
 
-class UnclosedComment(LexicalError):
+class UnclosedComment(CompilingError):
 
     def __init__(self, file_coords):
         super(UnclosedComment, self).__init__("Commet's end was not found.", file_coords)
-
-
-def interval(begin, end=0, infinite=False):
-    num = begin
-    while infinite or num <= end:
-        yield num
-        num += 1
 
 
 class CodeTable(object):
