@@ -18,9 +18,10 @@ BEGIN
     OUT 3;
   200:
     GOTO 100;  *< bad programming style >*
-    LINK some_var, 0;
+    LINK var1, 0;
     
     GOTO 200;
-  300: 
+  300:
+    OUT 0;
   
 END.

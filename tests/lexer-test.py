@@ -10,7 +10,7 @@ from lexer.lexer_utils import is_constant_code, is_identifier_code, InvalidToken
 class LexerTest(unittest.TestCase):
 
     def setUp(self):
-        self.__count_tests_source__ = '''PROGRAM test1;
+        self._count_tests_source = '''PROGRAM test1;
                                             LABEL 100,200, 300, 400;
                                             BEGIN
                                                 GOTO 300;
@@ -26,7 +26,7 @@ class LexerTest(unittest.TestCase):
         return lexer(source)
 
     def getCountTokens(self):
-        return self.getTokens(self.__count_tests_source__)
+        return self.getTokens(self._count_tests_source)
 
     def checkNoErrors(self, lexer):
         errors = lexer.errors()

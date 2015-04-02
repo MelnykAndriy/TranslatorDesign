@@ -5,27 +5,27 @@ import delimiters
 from lexer_utils import *
 
 
-class SignalLexicalAnalysis:
+class SignalLexicalAnalysis(object):
 
     def __init__(self, predefined_constants=(), predefined_identifiers=()):
-        self.__tokens__ = []
-        self.__constant_table__ = ConstantsTable()
-        self.__identifiers_table__ = IdentifiersTable()
-        self.__errors__ = []
-        self.__constant_table__.extend(predefined_constants)
-        self.__identifiers_table__.extend(predefined_identifiers)
+        self._tokens = []
+        self._constant_table = ConstantsTable()
+        self._identifiers_table = IdentifiersTable()
+        self._errors = []
+        self._constant_table.extend(predefined_constants)
+        self._identifiers_table.extend(predefined_identifiers)
 
     def constants(self):
-        return self.__constant_table__
+        return self._constant_table
 
     def identifiers(self):
-        return self.__identifiers_table__
+        return self._identifiers_table
 
     def errors(self):
-        return self.__errors__
+        return self._errors
     
     def tokens(self):
-        return self.__tokens__
+        return self._tokens
 
     def __call__(self, program_text):
         file_coordinates = [0, 1]
@@ -55,7 +55,7 @@ class SignalLexicalAnalysis:
                 return pos - len(token), line
 
             def report_invalid_token(token):
-                self.__errors__.append(InvalidToken(canon_file_pos(token)))
+                self._errors.append(InvalidToken(canon_file_pos(token)))
 
             def iterate_to_the_token_end_and_report_error(invalid_token_begin, start_ch):
                 invalid_token = invalid_token_begin
@@ -71,7 +71,8 @@ class SignalLexicalAnalysis:
                     current_character = program.next()
 
                 if delimiters.is_delimiter(current_character):
-                    tokens.append(Token(ord(current_character),
+                    tokens.append(Token(current_character,
+                                        ord(current_character),
                                         file_coordinates))
                     current_character = program.next()
                     continue
@@ -83,10 +84,12 @@ class SignalLexicalAnalysis:
                         current_character = program.next()
                     if delimiters.is_delimiter(current_character) or current_character.isspace():
                         if keywords.is_keyword(identifier):
-                            tokens.append(Token(keywords.keyword_code(identifier),
+                            tokens.append(Token(identifier,
+                                                keywords.keyword_code(identifier),
                                                 canon_file_pos(identifier)))
                         else:
-                            tokens.append(Token(self.__identifiers_table__.insert(identifier),
+                            tokens.append(Token(identifier,
+                                                self._identifiers_table.insert(identifier),
                                                 canon_file_pos(identifier)))
                     else:
                         current_character = iterate_to_the_token_end_and_report_error(identifier, current_character)
@@ -98,7 +101,8 @@ class SignalLexicalAnalysis:
                         unsiged_integer += current_character
                         current_character = program.next()
                     if delimiters.is_delimiter(current_character) or current_character.isspace():
-                        tokens.append(Token(self.__constant_table__.insert(int(unsiged_integer)),
+                        tokens.append(Token(unsiged_integer,
+                                            self._constant_table.insert(int(unsiged_integer)),
                                             canon_file_pos(unsiged_integer)))
                     else:
                         current_character = iterate_to_the_token_end_and_report_error(unsiged_integer,
@@ -124,6 +128,6 @@ class SignalLexicalAnalysis:
 
         except StopIteration:
             if inside_comment:
-                self.__errors__.append(UnclosedComment(inside_comment))
-            self.__tokens__ = tuple(tokens)
-            return self.__tokens__
+                self._errors.append(UnclosedComment(inside_comment))
+            self._tokens = tuple(tokens)
+            return self._tokens

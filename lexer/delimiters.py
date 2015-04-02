@@ -5,7 +5,7 @@ SEMICOLON = ord(';')
 DOT = ord('.')
 COLON = ord(':')
 
-__single_character_delimiters__ = {
+_single_character_delimiters = {
     ',': COMMA,
     ';': SEMICOLON,
     '.': DOT,
@@ -14,7 +14,7 @@ __single_character_delimiters__ = {
 
 
 def is_delimiter_code(code):
-    return code in __single_character_delimiters__.values()
+    return code in _single_character_delimiters.values()
 
 
 class BadDelimiter(Exception):
@@ -22,11 +22,19 @@ class BadDelimiter(Exception):
 
 
 def is_delimiter(s):
-    return s in __single_character_delimiters__.keys()
+    return s in _single_character_delimiters
 
 
 def delimiter_code(s):
     try:
-        return __single_character_delimiters__[s]
+        return _single_character_delimiters[s]
     except KeyError:
         raise BadDelimiter()
+
+
+def delimiter_by_code(code):
+    dm = [dm for dm in _single_character_delimiters if _single_character_delimiters[dm] == code]
+    if dm:
+        return dm[0]
+    else:
+        raise Exception('There is no known delimiter for provided code.')

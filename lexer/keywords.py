@@ -10,7 +10,7 @@ LINK = 406
 IN = 407
 OUT = 408
 
-__keywords__ = {
+_keywords = {
     'PROGRAM': PROGRAM,
     'BEGIN': BEGIN,
     'END': END,
@@ -23,7 +23,7 @@ __keywords__ = {
 
 
 def is_keyword_code(code):
-    return code in __keywords__.values()
+    return code in _keywords.values()
 
 
 class BadKeyword(Exception):
@@ -31,12 +31,20 @@ class BadKeyword(Exception):
 
 
 def is_keyword(s):
-    return s in __keywords__.keys()
+    return s in _keywords
 
 
 def keyword_code(s):
     try:
-        return __keywords__[s]
+        return _keywords[s]
     except KeyError:
         raise BadKeyword()
+
+
+def keyword_by_code(code):
+    keyword = [keyword for keyword in _keywords if _keywords[keyword] == code]
+    if keyword:
+        return keyword[0]
+    else:
+        raise Exception('There is no known keyword for provided code.')
 
