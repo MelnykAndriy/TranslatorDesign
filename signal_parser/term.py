@@ -11,6 +11,9 @@ class Term(object):
         self._root = root
         self._root.mark_as_root()
 
+    def match(self, up_match_dict=(), down_match_dict=()):
+        pass
+
     def traversal(self, up_func=lambda node, parent_node: None, down_func=lambda node, parent_node: None):
         def traversal_inner(node, parent_node):
             down_func(node, parent_node)
@@ -18,6 +21,28 @@ class Term(object):
                 node.iterate_children(traversal_inner)
             up_func(node, parent_node)
         self._root.iterate_children(traversal_inner)
+
+    def nodes_traversal(self, up_func=lambda node: None, down_func=lambda node: None):
+        def traversal_inner(node):
+            down_func(node)
+            if isinstance(node, InteriorNode):
+                node.iterate_children(lambda child_node, parent: traversal_inner(child_node))
+            up_func(node)
+        traversal_inner(self._root)
+
+    def __eq__(self, other):
+        def term_equal(node1, node2):
+            def node_equal():
+                return node1.get_label() == node2.get_label() and type(node1) == type(node2)
+
+            def children_equal():
+                return isinstance(node1, LeafNode) or reduce(lambda prev_subterm_res, tree_subterms:
+                                                             prev_subterm_res and term_equal(tree_subterms[0],
+                                                                                             tree_subterms[1]),
+                                                             zip(node1.children(), node2.children()),
+                                                             True)
+            return node_equal() and children_equal()
+        return term_equal(self._root, other._root)
 
 
 # TODO add position mixin
@@ -69,6 +94,14 @@ class InteriorNode(Node):
     def iterate_children(self, func):
         for child in self._childred:
             func(child, self)
+
+    def get_child_by_sort(self, sort):
+        for child in self._childred:
+            if isinstance(child, InteriorNode) and child.get_label() == sort:
+                return child
+
+    def children(self):
+        return self._childred
 
 
 def term_to_dot(term, node_style=(), edge_style=()):

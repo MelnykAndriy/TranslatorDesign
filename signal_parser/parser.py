@@ -8,6 +8,10 @@ import lexer.lexer_utils as lu
 from lexer.lexer import SignalLexicalAnalysis
 
 
+class UnknownSort(Exception):
+    pass
+
+
 class SignalParser(object):
 
     def __init__(self):
@@ -20,32 +24,32 @@ class SignalParser(object):
         with open(filename, "r") as source_file:
             return self.parse(source_file.read())
 
-    def parse(self, source_text):
+    def parse(self, source_text, sort='signal-program'):
         lexer = SignalLexicalAnalysis()
         self._tokens = TokensIterator(lexer(source_text))
         self._idents_table = lexer.identifiers()
         self._constants_table = lexer.constants()
-        try:
-            if self._signal_program():
-                pass
-                # TODO seems everything is alright
-            else:
-                pass  # TODO find error reason in stack
-
-        except TokensExhausted:
+        if sort not in SignalParser.productions:
+            raise UnknownSort('Sort %s is unknown.' % sort)
+        sort_production = SignalParser.productions[sort]
+        imagine_root = InteriorNode('')
+        if sort_production(self, imagine_root):
+            self._term = Term(imagine_root.get_child_by_sort(sort))
+            # TODO seems everything is alright
+        else:
+            pass  # TODO find error reason in stack
+        if not self._tokens.next_token().label() == TokensIterator.teminate_token().label():
+            print self._tokens.current_token().label()
+            print self._tokens.current_token().code()
+            raise Exception('something wrong')
             pass  # TODO report an error
-        try:
-            self._tokens.next_token()
-            # TODO report an error
-        except TokensExhausted:
-            pass  # TODO seems everything is alright
         return self._term
 
-    def _signal_program(self):
+    def _signal_program(self, prev_node):
         signal_program = InteriorNode('signal-program')
         if not self._with_checkpoint(self._program, signal_program):
             return False
-        self._term = Term(signal_program)
+        prev_node.add_child(signal_program)
         return True
 
     def _program(self, prev_node):
@@ -236,17 +240,14 @@ class SignalParser(object):
         if kw.LABEL == self._tokens.next_token().code():
             label_declarations.add_child(LeafNode('LABEL'))
         else:
-            self._tokens.confirm_last_checkpoint()
             cant_be_parsed_as_labels_decl = True
 
         if not cant_be_parsed_as_labels_decl and \
                 not self._with_checkpoint(self._unsigned_integer, label_declarations):
-            print 'cant_be_be_parsed = True after __unsigned_integer__'
             cant_be_parsed_as_labels_decl = True
 
         if not cant_be_parsed_as_labels_decl and \
                 not self._with_checkpoint(self._labels_list, label_declarations):
-            print 'cant_be_be_parsed = True after __labels_list__'
             cant_be_parsed_as_labels_decl = True
 
         if not cant_be_parsed_as_labels_decl and dm.SEMICOLON == self._tokens.next_token().code():
@@ -329,3 +330,16 @@ class SignalParser(object):
 
     def _match_leaf(self):
         pass
+
+    productions = {'signal-program': _signal_program,
+                   'program': _program,
+                   'procedure-identifier': _procedure_identifier,
+                   'block': _block,
+                   'declarations': _declarations,
+                   'statement': _statement,
+                   'statements-list': _statements_list,
+                   'label-declarations': _label_declarations,
+                   'labels-list': _labels_list,
+                   'variable-identifier': _variable_identifier,
+                   'identifier': _identifier,
+                   'unsigned-integer': _unsigned_integer}

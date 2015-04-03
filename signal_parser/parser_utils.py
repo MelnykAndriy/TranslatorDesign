@@ -1,5 +1,7 @@
 __author__ = 'mandriy'
 
+import lexer.lexer_utils
+
 
 class TokensExhausted(Exception):
 
@@ -12,8 +14,10 @@ class TokensExhausted(Exception):
 
 class TokensIterator(object):
 
+    terminate_token = lexer.lexer_utils.Token(ord('#'), -1, (0, 0))
+
     def __init__(self, tokens):
-        self._tokens = tuple(tokens)
+        self._tokens = tuple(list(tokens) + [TokensIterator.terminate_token])
         self._current_token = 0
         self._checkpoint_stack = []
 
@@ -35,3 +39,10 @@ class TokensIterator(object):
             return self._tokens[self._current_token - 1]
         else:
             raise TokensExhausted(self._tokens[self._current_token - 1])
+
+    def has_next_token(self):
+        return self._current_token != len(self._tokens)
+
+    @staticmethod
+    def teminate_token():
+        return TokensIterator.terminate_token
