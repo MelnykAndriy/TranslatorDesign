@@ -1,6 +1,6 @@
 __author__ = 'mandriy'
 
-from lexer.lexer_utils import PositionMixin
+from lexer.lexer_utils import Position, Token
 from utils.common_utils import interval
 import pydot
 
@@ -50,7 +50,6 @@ class Node(object):
 
     def __init__(self, label):
         self._label = label
-    # TODO add token
 
     def get_label(self):
         return self._label
@@ -59,13 +58,17 @@ class Node(object):
 class LeafNode(Node):
 
     def __init__(self, token):
-        super(LeafNode, self).__init__(token)
+        super(LeafNode, self).__init__(token.label())
+        self._token = token
+
+    def token(self):
+        return self._token
 
 
 class EmptyNode(LeafNode):
 
     def __init__(self):
-        super(EmptyNode, self).__init__('')
+        super(EmptyNode, self).__init__(Token('', -1, (0, 0)))
 
 
 class IsNotANode(Exception):

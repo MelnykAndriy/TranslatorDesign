@@ -3,6 +3,7 @@ __author__ = 'mandriy'
 import unittest
 from signal_parser.parser import InteriorNode, LeafNode, EmptyNode, SignalParser
 from signal_parser.term import Term, term_to_dot
+from lexer.lexer_utils import Token
 
 
 def term_from_test_rep(term_rep):
@@ -21,7 +22,7 @@ def term_from_test_rep(term_rep):
         elif isinstance(term_rep_inner, EmptyNode):
             return term_rep_inner
         else:
-            return LeafNode(term_rep_inner)
+            return LeafNode(Token(term_rep_inner, -1, (0, 0)))
     return Term(term_from_test_rep_inner(term_rep))
 
 

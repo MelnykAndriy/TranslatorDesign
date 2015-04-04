@@ -173,7 +173,7 @@ class SignalParser(object):
     def _leaf_node(self, leaf_p, prev_node):
         token = self._tokens.next_token()
         if leaf_p(token.code()):
-            prev_node.add_child(LeafNode(token.label()))
+            prev_node.add_child(LeafNode(token))
             return True
         return False
 

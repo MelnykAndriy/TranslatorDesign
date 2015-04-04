@@ -7,7 +7,7 @@ class HandleCase(object):
 
     def __init__(self, func, error):
         self._func = func
-        self._error = _error
+        self._error = error
 
     def __call__(self, *args):
         return self._func(*args)
@@ -27,7 +27,7 @@ class TokensExhausted(Exception):
 
 class TokensIterator(object):
 
-    terminate_token = lexer.lexer_utils.Token(ord('#'), -1, (0, 0))
+    terminate_token = lexer.lexer_utils.Token('#', ord('#'), (0, 0))
 
     def __init__(self, tokens):
         self._tokens = tuple(list(tokens) + [TokensIterator.terminate_token])

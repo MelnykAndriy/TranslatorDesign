@@ -4,7 +4,7 @@ import unittest
 from lexer.lexer import SignalLexicalAnalysis
 from lexer.keywords import is_keyword_code, keyword_code
 from lexer.delimiters import is_delimiter_code, delimiter_code
-from lexer.lexer_utils import is_constant_code, is_identifier_code, InvalidToken, UnclosedComment, PositionMixin
+from lexer.lexer_utils import is_constant_code, is_identifier_code, InvalidToken, UnclosedComment, Token
 
 
 class LexerTest(unittest.TestCase):
@@ -99,9 +99,9 @@ class LexerTest(unittest.TestCase):
     def test_errors_positions(self):
         invalid_token_errors = self.getErrors('LINK some_var, 0; PROGRAM 14badIdent;')
         unclosed_comment_error = self.getErrors("GOTO *< GOTO 400; >* 200; *< don't forget to close comments ")
-        self.assertListEqual([(6, 1), (27, 1)], map(PositionMixin.position, invalid_token_errors),
+        self.assertListEqual([(6, 1), (27, 1)], map(lambda error: error.position(), invalid_token_errors),
                              'Checks whether InvalidToken errors positions are correct.')
-        self.assertListEqual([(27, 1)],  map(PositionMixin.position, unclosed_comment_error),
+        self.assertListEqual([(27, 1)],  map(lambda error: error.position(), unclosed_comment_error),
                              'Checks whether UnclosedComment error position is correct.')
 
     def test_comments_skiping(self):
@@ -117,5 +117,5 @@ class LexerTest(unittest.TestCase):
         tokens = lexer(source)
         self.checkNoErrors(lexer)
         self.assertListEqual([(1, 1), (22, 1), (25, 1), (5, 2), (9, 2), (10, 2)],
-                             map(PositionMixin.position, tokens),
+                             map(Token.position, tokens),
                              'Tokens positions are incorrect.')

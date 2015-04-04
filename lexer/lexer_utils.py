@@ -1,21 +1,24 @@
 __author__ = 'mandriy'
 
-from utils.common_utils import interval, PositionMixin
+from utils.common_utils import interval, Position
 from utils.errors import CompilingError
 
 
-class Token(PositionMixin):
+class Token(object):
 
     def __init__(self, label, code, file_coords):
-        super(Token, self).__init__(file_coords)
         self._token__code = code
         self._label = label
+        self._pos = Position(file_coords)
 
     def code(self):
         return self._token__code
 
     def label(self):
         return self._label
+
+    def position(self):
+        return self._pos
 
     def __eq__(self, other):
         return self._token__code == other.code()
