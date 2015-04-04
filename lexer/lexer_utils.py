@@ -17,6 +17,9 @@ class Token(PositionMixin):
     def label(self):
         return self._label
 
+    def __eq__(self, other):
+        return self._token__code == other.code()
+
 
 class InvalidToken(CompilingError):
 

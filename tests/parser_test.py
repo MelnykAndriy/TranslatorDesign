@@ -30,7 +30,7 @@ def get_identifier(ident):
 
 
 def get_unsigned_integer(i):
-    return 'unsigned-integer', [i]
+    return 'unsigned-integer', [str(i)]
 
 
 class ParsingTest(unittest.TestCase):
@@ -95,8 +95,6 @@ class ParsingTest(unittest.TestCase):
         pass
 
     def test_program_parsing(self):
-        term_to_dot(self._parser.parse(self._program_text, sort='program')).write_svg('1.svg')
-        term_to_dot(term_from_test_rep(self._program_rep)).write_svg('2.svg')
         self.assertEqual(self._parser.parse(self._program_text, sort='program'),
                          term_from_test_rep(self._program_rep))
 

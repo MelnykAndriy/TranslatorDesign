@@ -6,10 +6,15 @@ import lexer.keywords as kw
 import lexer.delimiters as dm
 import lexer.lexer_utils as lu
 from lexer.lexer import SignalLexicalAnalysis
+from functools import partial
 
 
 class UnknownSort(Exception):
     pass
+
+
+def _exact_code_leaf(code):
+    return lambda token_code: code == token_code
 
 
 class SignalParser(object):
@@ -38,76 +43,42 @@ class SignalParser(object):
             # TODO seems everything is alright
         else:
             pass  # TODO find error reason in stack
-        if not self._tokens.next_token().label() == TokensIterator.teminate_token().label():
-            print self._tokens.current_token().label()
-            print self._tokens.current_token().code()
+        if not self._tokens.only_terminate_token_left():
             raise Exception('something wrong')
             pass  # TODO report an error
         return self._term
 
     def _signal_program(self, prev_node):
-        signal_program = InteriorNode('signal-program')
-        if not self._with_checkpoint(self._program, signal_program):
-            return False
-        prev_node.add_child(signal_program)
-        return True
+        return self._unique_by_and('signal-program',
+                                   prev_node,
+                                   self._program)
 
     def _program(self, prev_node):
-        program_node = InteriorNode('program')
-
-        if kw.PROGRAM == self._tokens.next_token().code():
-            program_node.add_child(LeafNode('PROGRAM'))
-        else:
-            return False
-
-        if not self._with_checkpoint(self._procedure_identifier, program_node):
-            return False
-
-        if dm.SEMICOLON == self._tokens.next_token().code():
-            program_node.add_child(LeafNode(';'))
-        else:
-            return False
-
-        if not self._with_checkpoint(self._block, program_node):
-            return False
-
-        if dm.DOT == self._tokens.next_token().code():
-            program_node.add_child(LeafNode('.'))
-        else:
-            return False
-        prev_node.add_child(program_node)
-        return True
+        return self._unique_by_and('program',
+                                   prev_node,
+                                   self._leaf_production(_exact_code_leaf(kw.PROGRAM)),
+                                   self._procedure_identifier,
+                                   self._leaf_production(_exact_code_leaf(dm.SEMICOLON)),
+                                   self._block,
+                                   self._leaf_production(_exact_code_leaf(dm.DOT)))
 
     def _procedure_identifier(self, prev_node):
-        procedure_identifier = InteriorNode('procedure-identifier')
-        if not self._with_checkpoint(self._identifier, procedure_identifier):
-            return False
-        prev_node.add_child(procedure_identifier)
-        return True
+        return self._unique_by_and('procedure-identifier',
+                                   prev_node,
+                                   self._identifier)
 
     def _block(self, prev_node):
-        block = InteriorNode('block')
-        if not self._with_checkpoint(self._declarations, block):
-            return False
-        if kw.BEGIN == self._tokens.next_token().code():
-            block.add_child(LeafNode('BEGIN'))
-        else:
-            return False
-        if not self._with_checkpoint(self._statements_list, block):
-            return False
-        if kw.END == self._tokens.next_token().code():
-            block.add_child(LeafNode('END'))
-        else:
-            return False
-        prev_node.add_child(block)
-        return True
+        return self._unique_by_and('block',
+                                   prev_node,
+                                   self._declarations,
+                                   self._leaf_production(_exact_code_leaf(kw.BEGIN)),
+                                   self._statements_list,
+                                   self._leaf_production(_exact_code_leaf(kw.END)))
 
     def _declarations(self, prev_node):
-        declarations = InteriorNode('declarations')
-        if not self._with_checkpoint(self._label_declarations, declarations):
-            return False
-        prev_node.add_child(declarations)
-        return True
+        return self._unique_by_and('declarations',
+                                   prev_node,
+                                   self._label_declarations)
 
     def _statement(self, prev_node):
         statement = InteriorNode('statement')
@@ -289,29 +260,19 @@ class SignalParser(object):
         return True
 
     def _variable_identifier(self, prev_node):
-        variable_identifier = InteriorNode('variable-identifier')
-        if not self._with_checkpoint(self._identifier, variable_identifier):
-            return False
-        prev_node.add_child(variable_identifier)
-        return True
+        return self._unique_by_and('variable-identifier',
+                                   prev_node,
+                                   self._identifier)
 
     def _identifier(self, prev_node):
-        ident_code = self._tokens.next_token().code()
-        if lu.is_identifier_code(ident_code):
-            identifier = InteriorNode('identifier')
-            identifier.add_child(LeafNode(self._idents_table.get_item_by_code(ident_code)))
-            prev_node.add_child(identifier)
-            return True
-        return False
+        return self._unique_by_and('identifier',
+                                   prev_node,
+                                   self._leaf_production(lu.is_identifier_code))
 
     def _unsigned_integer(self, prev_node):
-        constant_code = self._tokens.next_token().code()
-        if lu.is_constant_code(constant_code):
-            unsigned_integer = InteriorNode('unsigned-integer')
-            unsigned_integer.add_child(LeafNode(self._constants_table.get_item_by_code(constant_code)))
-            prev_node.add_child(unsigned_integer)
-            return True
-        return False
+        return self._unique_by_and('unsigned-integer',
+                                   prev_node,
+                                   self._leaf_production(lu.is_constant_code))
 
     def _with_checkpoint(self, func, *args):
         self._tokens.save_checkpoint()
@@ -322,13 +283,28 @@ class SignalParser(object):
             self._tokens.back_to_last_checkpoint()
         return func_result
 
-    def _unique_by_and(self, *handle_funcs):
-        pass
+    def _unique_by_and(self, production, prev_node, *handle_cases):
+        node = InteriorNode(production)
+        successfully = self._with_checkpoint(reduce,
+                                             lambda res, handle_case: res and self._with_checkpoint(handle_case, node),
+                                             handle_cases,
+                                             True)
+        if successfully:
+            prev_node.add_child(node)
+            return True
+        return False
+
+    def _leaf_production(self, leaf_p):
+        return partial(self._leaf_node, leaf_p)
+
+    def _leaf_node(self, leaf_p, prev_node):
+        token = self._tokens.next_token()
+        if leaf_p(token.code()):
+            prev_node.add_child(LeafNode(token.label()))
+            return True
+        return False
 
     def _unique_by_or(self, *handle_funcs):
-        pass
-
-    def _match_leaf(self):
         pass
 
     productions = {'signal-program': _signal_program,

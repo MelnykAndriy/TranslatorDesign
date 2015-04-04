@@ -3,6 +3,19 @@ __author__ = 'mandriy'
 import lexer.lexer_utils
 
 
+class HandleCase(object):
+
+    def __init__(self, func, error):
+        self._func = func
+        self._error = _error
+
+    def __call__(self, *args):
+        return self._func(*args)
+
+    def error(self):
+        return self._error
+
+
 class TokensExhausted(Exception):
 
     def __init__(self, last_token):
@@ -43,6 +56,5 @@ class TokensIterator(object):
     def has_next_token(self):
         return self._current_token != len(self._tokens)
 
-    @staticmethod
-    def teminate_token():
-        return TokensIterator.terminate_token
+    def only_terminate_token_left(self):
+        return self._tokens[self._current_token].code() == TokensIterator.terminate_token.code()
