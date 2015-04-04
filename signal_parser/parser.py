@@ -13,10 +13,6 @@ class UnknownSort(Exception):
     pass
 
 
-def _exact_code_leaf(code):
-    return lambda token_code: code == token_code
-
-
 class SignalParser(object):
 
     def __init__(self):
@@ -49,230 +45,98 @@ class SignalParser(object):
         return self._term
 
     def _signal_program(self, prev_node):
-        return self._unique_by_and('signal-program',
-                                   prev_node,
-                                   self._program)
+        return self._unique_by_and_production('signal-program',
+                                              prev_node,
+                                              self._program)
 
     def _program(self, prev_node):
-        return self._unique_by_and('program',
-                                   prev_node,
-                                   self._leaf_production(_exact_code_leaf(kw.PROGRAM)),
-                                   self._procedure_identifier,
-                                   self._leaf_production(_exact_code_leaf(dm.SEMICOLON)),
-                                   self._block,
-                                   self._leaf_production(_exact_code_leaf(dm.DOT)))
+        return self._unique_by_and_production('program',
+                                              prev_node,
+                                              self._leaf_production(self._exact_code_leaf(kw.PROGRAM)),
+                                              self._procedure_identifier,
+                                              self._leaf_production(self._exact_code_leaf(dm.SEMICOLON)),
+                                              self._block,
+                                              self._leaf_production(self._exact_code_leaf(dm.DOT)))
 
     def _procedure_identifier(self, prev_node):
-        return self._unique_by_and('procedure-identifier',
-                                   prev_node,
-                                   self._identifier)
+        return self._unique_by_and_production('procedure-identifier',
+                                              prev_node,
+                                              self._identifier)
 
     def _block(self, prev_node):
-        return self._unique_by_and('block',
-                                   prev_node,
-                                   self._declarations,
-                                   self._leaf_production(_exact_code_leaf(kw.BEGIN)),
-                                   self._statements_list,
-                                   self._leaf_production(_exact_code_leaf(kw.END)))
+        return self._unique_by_and_production('block',
+                                              prev_node,
+                                              self._declarations,
+                                              self._leaf_production(self._exact_code_leaf(kw.BEGIN)),
+                                              self._statements_list,
+                                              self._leaf_production(self._exact_code_leaf(kw.END)))
 
     def _declarations(self, prev_node):
-        return self._unique_by_and('declarations',
-                                   prev_node,
-                                   self._label_declarations)
+        return self._unique_by_and_production('declarations',
+                                              prev_node,
+                                              self._label_declarations)
 
     def _statement(self, prev_node):
-        statement = InteriorNode('statement')
-        next_production = False
-        self._tokens.save_checkpoint()
-        if not self._with_checkpoint(self._unsigned_integer, statement):
-            next_production = True
-        if not next_production and not dm.COLON == self._tokens.next_token().code():
-            next_production = True
-        else:
-            statement.add_child(LeafNode(':'))
-        if not next_production and self._with_checkpoint(self._statement, statement):
-            self._tokens.confirm_last_checkpoint()
-            prev_node.add_child(statement)
-            return True
-        else:
-            self._tokens.back_to_last_checkpoint()
-            statement = InteriorNode('statement')
-            next_production = False
-# GOTO ------------
-        self._tokens.save_checkpoint()
-        if kw.GOTO == self._tokens.next_token().code():
-            statement.add_child(LeafNode('GOTO'))
-        else:
-            next_production = True
-        if not next_production and not self._with_checkpoint(self._unsigned_integer, statement):
-            next_production = True
-        if not next_production and dm.SEMICOLON == self._tokens.next_token().code():
-            self._tokens.confirm_last_checkpoint()
-            statement.add_child(LeafNode(';'))
-            prev_node.add_child(statement)
-            return True
-        else:
-            self._tokens.back_to_last_checkpoint()
-            statement = InteriorNode('statement')
-            next_production = False
-# LINK ---------------
-        self._tokens.save_checkpoint()
-
-        if kw.LINK == self._tokens.next_token().code():
-            statement.add_child(LeafNode('LINK'))
-        else:
-            next_production = True
-
-        if not next_production and not self._with_checkpoint(self._variable_identifier, statement):
-            next_production = True
-
-        if not next_production:
-            if not dm.COMMA == self._tokens.next_token().code():
-                next_production = True
-            else:
-                statement.add_child(LeafNode(','))
-
-        if not next_production and not self._with_checkpoint(self._unsigned_integer, statement):
-            next_production = True
-
-        if not next_production and dm.SEMICOLON == self._tokens.next_token().code():
-            self._tokens.confirm_last_checkpoint()
-            statement.add_child(LeafNode(';'))
-            prev_node.add_child(statement)
-            return True
-        else:
-            self._tokens.back_to_last_checkpoint()
-            statement = InteriorNode('statement')
-            next_production = False
-# IN --------------------
-        self._tokens.save_checkpoint()
-
-        if kw.IN == self._tokens.next_token().code():
-            statement.add_child(LeafNode('IN'))
-        else:
-            next_production = True
-
-        if not next_production and not self._with_checkpoint(self._unsigned_integer, statement):
-            next_production = True
-
-        if not next_production and dm.SEMICOLON == self._tokens.next_token().code():
-            self._tokens.confirm_last_checkpoint()
-            statement.add_child(LeafNode(';'))
-            prev_node.add_child(statement)
-            return True
-        else:
-            self._tokens.back_to_last_checkpoint()
-            statement = InteriorNode('statement')
-            next_production = False
-
-# OUT -------------------
-        self._tokens.save_checkpoint()
-
-        if kw.OUT == self._tokens.next_token().code():
-            statement.add_child(LeafNode('OUT'))
-        else:
-            next_production = True
-
-        if not next_production and not self._with_checkpoint(self._unsigned_integer, statement):
-            next_production = True
-
-        if not next_production and dm.SEMICOLON == self._tokens.next_token().code():
-            self._tokens.confirm_last_checkpoint()
-            statement.add_child(LeafNode(';'))
-            prev_node.add_child(statement)
-            return True
-        else:
-            self._tokens.back_to_last_checkpoint()
-            # TODO error stack push
-            return False
+        return self._unique_by_or(
+            'statement',
+            prev_node,
+            self._create_raw_and(self._unsigned_integer,
+                                 self._leaf_production(self._exact_code_leaf(dm.COLON)),
+                                 self._statement),
+            self._create_raw_and(self._leaf_production(self._exact_code_leaf(kw.GOTO)),
+                                 self._unsigned_integer,
+                                 self._leaf_production(self._exact_code_leaf(dm.SEMICOLON))),
+            self._create_raw_and(self._leaf_production(self._exact_code_leaf(kw.IN)),
+                                 self._unsigned_integer,
+                                 self._leaf_production(self._exact_code_leaf(dm.SEMICOLON))),
+            self._create_raw_and(self._leaf_production(self._exact_code_leaf(kw.OUT)),
+                                 self._unsigned_integer,
+                                 self._leaf_production(self._exact_code_leaf(dm.SEMICOLON))),
+            self._create_raw_and(self._leaf_production(self._exact_code_leaf(kw.LINK)),
+                                 self._variable_identifier,
+                                 self._leaf_production(self._exact_code_leaf(dm.COMMA)),
+                                 self._unsigned_integer,
+                                 self._leaf_production(self._exact_code_leaf(dm.SEMICOLON)))
+        )
 
     def _statements_list(self, prev_node):
-        statements_list = InteriorNode('statements-list')
-        self._tokens.save_checkpoint()
-        cant_be_parsed_as_statements_list = False
-        if not self._with_checkpoint(self._statement, statements_list):
-            cant_be_parsed_as_statements_list = True
-        if not cant_be_parsed_as_statements_list and not self._with_checkpoint(self._statements_list, statements_list):
-            cant_be_parsed_as_statements_list = True
-        if cant_be_parsed_as_statements_list:
-            self._tokens.back_to_last_checkpoint()
-            empty_statements_list = InteriorNode('statements-list')
-            empty_statements_list.add_child(EmptyNode())
-            prev_node.add_child(empty_statements_list)
-        else:
-            self._tokens.confirm_last_checkpoint()
-            prev_node.add_child(statements_list)
-        return True
+        return self._unique_by_or('statements-list',
+                                  prev_node,
+                                  self._create_raw_and(self._statement,
+                                                       self._statements_list),
+                                  self._empty_leaf)
 
     def _label_declarations(self, prev_node):
-        self._tokens.save_checkpoint()
-        label_declarations = InteriorNode('label-declarations')
-        cant_be_parsed_as_labels_decl = False
-        if kw.LABEL == self._tokens.next_token().code():
-            label_declarations.add_child(LeafNode('LABEL'))
-        else:
-            cant_be_parsed_as_labels_decl = True
-
-        if not cant_be_parsed_as_labels_decl and \
-                not self._with_checkpoint(self._unsigned_integer, label_declarations):
-            cant_be_parsed_as_labels_decl = True
-
-        if not cant_be_parsed_as_labels_decl and \
-                not self._with_checkpoint(self._labels_list, label_declarations):
-            cant_be_parsed_as_labels_decl = True
-
-        if not cant_be_parsed_as_labels_decl and dm.SEMICOLON == self._tokens.next_token().code():
-            label_declarations.add_child(LeafNode(';'))
-        else:
-            cant_be_parsed_as_labels_decl = True
-
-        if cant_be_parsed_as_labels_decl:
-            self._tokens.back_to_last_checkpoint()
-            empty_label_declarations = InteriorNode('label-declarations')
-            empty_label_declarations.add_child(EmptyNode())
-            prev_node.add_child(empty_label_declarations)
-        else:
-            self._tokens.confirm_last_checkpoint()
-            prev_node.add_child(label_declarations)
-        return True
+        return self._unique_by_or('label-declarations',
+                                  prev_node,
+                                  self._create_raw_and(self._leaf_production(self._exact_code_leaf(kw.LABEL)),
+                                                       self._unsigned_integer,
+                                                       self._labels_list,
+                                                       self._leaf_production(self._exact_code_leaf(dm.SEMICOLON))),
+                                  self._empty_leaf)
 
     def _labels_list(self, prev_node):
-        labels_list = InteriorNode('labels-list')
-        cant_be_parsed_as_labels_list = False
-        self._tokens.save_checkpoint()
-        if dm.COMMA == self._tokens.next_token().code():
-            labels_list.add_child(LeafNode(','))
-        else:
-            cant_be_parsed_as_labels_list = True
-        if not cant_be_parsed_as_labels_list and not self._with_checkpoint(self._unsigned_integer, labels_list):
-            cant_be_parsed_as_labels_list = True
-        if not cant_be_parsed_as_labels_list and not self._with_checkpoint(self._labels_list, labels_list):
-            cant_be_parsed_as_labels_list = True
-
-        if cant_be_parsed_as_labels_list:
-            self._tokens.back_to_last_checkpoint()
-            empty_labels_list = InteriorNode('labels-list')
-            empty_labels_list.add_child(EmptyNode())
-            prev_node.add_child(empty_labels_list)
-        else:
-            self._tokens.confirm_last_checkpoint()
-            prev_node.add_child(labels_list)
-        return True
+        return self._unique_by_or('labels-list',
+                                  prev_node,
+                                  self._create_raw_and(self._leaf_production(self._exact_code_leaf(dm.COMMA)),
+                                                       self._unsigned_integer,
+                                                       self._labels_list),
+                                  self._empty_leaf)
 
     def _variable_identifier(self, prev_node):
-        return self._unique_by_and('variable-identifier',
-                                   prev_node,
-                                   self._identifier)
+        return self._unique_by_and_production('variable-identifier',
+                                              prev_node,
+                                              self._identifier)
 
     def _identifier(self, prev_node):
-        return self._unique_by_and('identifier',
-                                   prev_node,
-                                   self._leaf_production(lu.is_identifier_code))
+        return self._unique_by_and_production('identifier',
+                                              prev_node,
+                                              self._leaf_production(lu.is_identifier_code))
 
     def _unsigned_integer(self, prev_node):
-        return self._unique_by_and('unsigned-integer',
-                                   prev_node,
-                                   self._leaf_production(lu.is_constant_code))
+        return self._unique_by_and_production('unsigned-integer',
+                                              prev_node,
+                                              self._leaf_production(lu.is_constant_code))
 
     def _with_checkpoint(self, func, *args):
         self._tokens.save_checkpoint()
@@ -283,16 +147,25 @@ class SignalParser(object):
             self._tokens.back_to_last_checkpoint()
         return func_result
 
-    def _unique_by_and(self, production, prev_node, *handle_cases):
+    def _unique_by_and_production(self, production, prev_node, *handle_cases):
         node = InteriorNode(production)
-        successfully = self._with_checkpoint(reduce,
-                                             lambda res, handle_case: res and self._with_checkpoint(handle_case, node),
-                                             handle_cases,
-                                             True)
-        if successfully:
+        if self._raw_unique_by_and(node, *handle_cases):
             prev_node.add_child(node)
             return True
         return False
+
+    def _raw_unique_by_and(self, prev_node, *handle_cases):
+        successfully = self._with_checkpoint(reduce,
+                                             lambda res, handle_case: res and self._with_checkpoint(handle_case,
+                                                                                                    prev_node),
+                                             handle_cases,
+                                             True)
+        return successfully
+
+    def _create_raw_and(self, *handle_cases):
+        def raw_and(prev_node):
+            return self._raw_unique_by_and(prev_node, *handle_cases)
+        return raw_and
 
     def _leaf_production(self, leaf_p):
         return partial(self._leaf_node, leaf_p)
@@ -304,8 +177,30 @@ class SignalParser(object):
             return True
         return False
 
-    def _unique_by_or(self, *handle_funcs):
-        pass
+    @staticmethod
+    def _empty_leaf(prev_node):
+        prev_node.add_child(EmptyNode())
+        return True
+    
+    @staticmethod
+    def _exact_code_leaf(code):
+        return lambda token_code: code == token_code
+
+    def _unique_by_or(self, production, prev_node, *handle_cases):
+        nodes = []
+        
+        def try_parse(handle_case):
+            nodes.append(InteriorNode(production))
+            return self._with_checkpoint(handle_case, nodes[len(nodes) - 1])
+
+        successfully = self._with_checkpoint(reduce,
+                                             lambda res, handle_case: res or try_parse(handle_case),
+                                             handle_cases,
+                                             False)
+        if successfully:
+            prev_node.add_child(nodes.pop())
+            return True
+        return False
 
     productions = {'signal-program': _signal_program,
                    'program': _program,
