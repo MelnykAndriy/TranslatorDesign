@@ -24,16 +24,25 @@ class Token(object):
         return self._token__code == other.code()
 
 
-class InvalidToken(CompilingError):
+class SignalLexicalError(CompilingError):
+
+    def __init__(self, msg, file_coords):
+        super(SignalLexicalError, self).__init__(msg, file_coords)
+
+    def what(self):
+        return 'Lexical Error : %s' % super(SignalLexicalError, self).what()
+
+
+class InvalidToken(SignalLexicalError):
 
     def __init__(self, file_coords):
-        super(InvalidToken, self).__init__("Invalid token.", file_coords)
+        super(InvalidToken, self).__init__("Invalid token", file_coords)
 
 
-class UnclosedComment(CompilingError):
+class UnclosedComment(SignalLexicalError):
 
     def __init__(self, file_coords):
-        super(UnclosedComment, self).__init__("Commet's end was not found.", file_coords)
+        super(UnclosedComment, self).__init__("Commet's end was not found", file_coords)
 
 
 class CodeTable(object):

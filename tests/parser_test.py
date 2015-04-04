@@ -1,9 +1,12 @@
+from _curses import error
+
 __author__ = 'mandriy'
 
 import unittest
 from signal_parser.parser import InteriorNode, LeafNode, EmptyNode, SignalParser
 from signal_parser.term import Term, term_to_dot
 from lexer.lexer_utils import Token
+from signal_parser.errors import *
 
 
 def term_from_test_rep(term_rep):
@@ -168,10 +171,168 @@ class ParsingTest(unittest.TestCase):
                          term_from_test_rep(self._id_rep))
 
 
+# noinspection PyShadowingNames
 class ErrorsCollectingTest(unittest.TestCase):
 
     def setUp(self):
-        pass
+        self._parser = SignalParser()
 
     def tearDown(self):
         pass
+
+    def test_expected_program_keyword(self):
+        invalid_source = ' program1; BEGIN END.'
+        self._parser.parse(invalid_source, 'signal-program')
+        error = self._parser.errors().pop()
+        self.assertIsInstance(error, ExpectedToken, 'Extected program keyword error reporting.')
+        self.assertEqual(error.position(), (2, 1), 'Extected program keyword error position.')
+
+    def test_missed_program_name(self):
+        invalid_source = 'PROGRAM   ; BEGIN END.'
+        self._parser.parse(invalid_source, 'signal-program')
+        error = self._parser.errors().pop()
+        self.assertIsInstance(error, MissedToken, 'Missed program name error reporting.')
+        self.assertEqual(error.position(), (11, 1), 'Missed program name error position.')
+
+    def test_extra_tokens(self):
+        invalid_source = 'PROGRAM program1; BEGIN END. LABEL id, 2;'
+        self._parser.parse(invalid_source, 'signal-program')
+        error = self._parser.errors().pop()
+        self.assertIsInstance(error, ExtraTokens, 'ExtraTokens error reporting.')
+        self.assertEqual(error.position(), (30, 1), 'ExtraTokens error position.')
+
+    def test_missed_semicolon(self):
+        invalid_source = 'PROGRAM program1 BEGIN END.'
+        self._parser.parse(invalid_source, 'signal-program')
+        error = self._parser.errors().pop()
+        self.assertIsInstance(error, MissedToken, 'Missed semicolon after program name error reporting.')
+        self.assertEqual(error.position(), (18, 1), 'Missed semicolon after program name error position.')
+
+    def test_missed_dot(self):
+        invalid_source = 'PROGRAM program1; BEGIN END'
+        self._parser.parse(invalid_source, 'signal-program')
+        error = self._parser.errors().pop()
+        self.assertIsInstance(error, MissedToken, 'Missed dot after program block  error reporting.')
+        self.assertEqual(error.position(), (28, 1), 'Missed dot after program block error position.')
+
+    def test_begin_expected(self):
+        invalid_source = ' LABEL 1, 2,3;\n 1: LINK var, 2; GOTO 1; END.'
+        self._parser.parse(invalid_source, 'block')
+        error = self._parser.errors().pop()
+        self.assertIsInstance(error, ExpectedToken, 'Expected block begin error reporting.')
+        self.assertEqual(error.position(), (2, 2), 'Expected block begin error position.')
+
+    def test_end_expected(self):
+        invalid_source = ' LABEL 1, 2,3;\n BEGIN 1: LINK var, 2;\n GOTO 1;\n IN 1; '
+        self._parser.parse(invalid_source, 'block')
+        error = self._parser.errors().pop()
+        self.assertIsInstance(error, ExpectedToken, 'Expected block end error reporting.')
+        self.assertEqual(error.position(), (7, 4), 'Expected block end error position.')
+
+    def test_label_declaration(self):
+        invalid_source = ' LABEL invalid1, 2,3; '
+        self._parser.parse(invalid_source, 'declarations')
+        error = self._parser.errors().pop()
+        self.assertIsInstance(error, InvalidLabelDefinition, 'Invalid label definition error reporting.')
+        self.assertEqual(error.position(), (8, 1), 'Invalid label definition error position.')
+
+    def test_missed_semicolon_after_label_declarations(self):
+        invalid_source = ' LABEL 1, 2,3  '
+        self._parser.parse(invalid_source, 'declarations')
+        error = self._parser.errors().pop()
+        self.assertIsInstance(error, MissedToken,
+                              'Missed semicolon after label declarations error reporting.')
+        self.assertEqual(error.position(), (14, 1),
+                         'Missed semicolon after label declarations error position.')
+
+    def test_label_declaration_in_labels_list(self):
+        invalid_source = ' LABEL 1,\n 2,\n 3,\n    lol; '
+        self._parser.parse(invalid_source, 'declarations')
+        error = self._parser.errors().pop(0)
+        self.assertIsInstance(error, InvalidLabelDefinition, 'Labels list invalid label error reporting.')
+        self.assertEqual(error.position(), (5, 4), 'Labels list invalid label error position.')
+
+    def test_labeleld_statement_semicolon(self):
+        invalid_source = ' 1 GOTO 1;'
+        self._parser.parse(invalid_source, 'statement')
+        error = self._parser.errors().pop(0)
+        self.assertIsInstance(error, MissedToken, 'Missed colon inside labeled statement error reporting.')
+        self.assertEqual(error.position(), (4, 1), 'Missed colon inside labeled statement error position.')
+
+    def test_empty_labeled_statement(self):
+        invalid_source = 'BEGIN LINK var, 1;\n 5: END'
+        self._parser.parse(invalid_source, 'block')
+        error = self._parser.errors().pop(0)
+        self.assertIsInstance(error, EmptyLabeledStatement, 'EmptyLabeledStatement error reporting.')
+        self.assertEqual(error.position(), (5, 2), 'EmptyLabeledStatement error position.')
+
+    def test_goto_semicolon(self):
+        invalid_source = 'BEGIN\n\tIN 1;\n\tOUT 2;\n\tGOTO 15 END'
+        self._parser.parse(invalid_source, 'block')
+        error = self._parser.errors().pop(0)
+        self.assertIsInstance(error, MissedToken, 'Missed GOTO semicolon error reporting.')
+        self.assertEqual(error.position(), (13, 4), 'Missed GOTO semicolon error position.')
+
+    def test_goto_label(self):
+        invalid_source = 'GOTO label15;'
+        self._parser.parse(invalid_source, 'statement')
+        error = self._parser.errors().pop(0)
+        self.assertIsInstance(error, GotoStatementArgument, 'GOTO argument error reporting.')
+        self.assertEqual(error.position(), (6, 1), 'GOTO argument error position.')
+
+    def test_in_argument(self):
+        invalid_source = 'IN 1;\n IN 2;\nIN badInARG;'
+        self._parser.parse(invalid_source, 'statements-list')
+        error = self._parser.errors().pop(0)
+        self.assertIsInstance(error, InStatementArgument, 'IN argument error reporting.')
+        self.assertEqual(error.position(), (4, 3), 'IN argument error position.')
+
+    def test_in_semicolon(self):
+        invalid_source = 'BEGIN\n15: IN 1\nOUT 2;\nGOTO 15; END'
+        self._parser.parse(invalid_source, 'block')
+        error = self._parser.errors().pop(0)
+        self.assertIsInstance(error, MissedToken, 'Missed IN semicolon error reporting.')
+        self.assertEqual(error.position(), (1, 3), 'Missed IN semicolon error position.')
+
+    def test_out_argument(self):
+        invalid_source = 'OUT 5;\n OUT badInARG;\n OUT 7;'
+        self._parser.parse(invalid_source, 'statements-list')
+        error = self._parser.errors().pop(0)
+        self.assertIsInstance(error, OutStatementArgument, 'OUT argument error reporting.')
+        self.assertEqual(error.position(), (6, 2), 'OUT argument error position.')
+
+    def test_out_semicolon(self):
+        invalid_source = 'BEGIN\n15: IN 1;\nOUT 2\nGOTO 15; END'
+        self._parser.parse(invalid_source, 'block')
+        error = self._parser.errors().pop(0)
+        self.assertIsInstance(error, MissedToken, 'Missed OUT semicolon error reporting.')
+        self.assertEqual(error.position(), (1, 4), 'Missed OUT semicolon error position.')
+
+    def test_link_semicolon(self):
+        invalid_source = 'GOTO 1; \n1:\n LINK id2, 5'
+        self._parser.parse(invalid_source, 'statements-list')
+        error = self._parser.errors().pop(0)
+        self.assertIsInstance(error, MissedToken, 'Missed LINK semicolon error reporting.')
+        self.assertEqual(error.position(), (13, 3), 'Missed LINK semicolon error position.')
+
+    def test_link_args(self):
+        invalid_source = 'GOTO 1; \n1:\n LINK id2, id5; '
+        self._parser.parse(invalid_source, 'statements-list')
+        error = self._parser.errors().pop(0)
+        self.assertIsInstance(error, LinkStatementArguments, 'LINK arguments error reporting.')
+        self.assertEqual(error.position(), (12, 3), 'LINK arguments error position.')
+
+    def test_link_args2(self):
+        invalid_source = 'GOTO 1; \n1:\n LINK 2, 5; '
+        self._parser.parse(invalid_source, 'statements-list')
+        error = self._parser.errors().pop(0)
+        self.assertIsInstance(error, LinkStatementArguments, 'LINK arguments error reporting.')
+        self.assertEqual(error.position(), (7, 3), 'LINK arguments error position.')
+
+    def test_link_missed_comma(self):
+        invalid_source = 'LINK id 7; '
+        self._parser.parse(invalid_source, 'statements-list')
+        error = self._parser.errors().pop(0)
+        self.assertIsInstance(error, MissedToken, 'LINK statement missed comma error reporting.')
+        self.assertEqual(error.position(), (9, 1), 'LINK statement missed comma error position.')
+

@@ -3,19 +3,6 @@ __author__ = 'mandriy'
 import lexer.lexer_utils
 
 
-class HandleCase(object):
-
-    def __init__(self, func, error):
-        self._func = func
-        self._error = error
-
-    def __call__(self, *args):
-        return self._func(*args)
-
-    def error(self):
-        return self._error
-
-
 class TokensExhausted(Exception):
 
     def __init__(self, last_token):
@@ -27,10 +14,15 @@ class TokensExhausted(Exception):
 
 class TokensIterator(object):
 
-    terminate_token = lexer.lexer_utils.Token('#', ord('#'), (0, 0))
-
     def __init__(self, tokens):
-        self._tokens = tuple(list(tokens) + [TokensIterator.terminate_token])
+        if tokens:
+            token = tokens[len(tokens) - 1]
+            pos = token.position()
+            terminate_token_pos = (pos.column() + len(token.label()), pos.line())
+        else:
+            terminate_token_pos = (0, 0)
+        self._terminate_token = lexer.lexer_utils.Token('#', ord('#'), terminate_token_pos)
+        self._tokens = tuple(list(tokens) + [self._terminate_token])
         self._current_token = 0
         self._checkpoint_stack = []
 
@@ -57,4 +49,4 @@ class TokensIterator(object):
         return self._current_token != len(self._tokens)
 
     def only_terminate_token_left(self):
-        return self._tokens[self._current_token].code() == TokensIterator.terminate_token.code()
+        return self._tokens[self._current_token].code() == self._terminate_token.code()

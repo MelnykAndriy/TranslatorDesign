@@ -7,6 +7,7 @@ import lexer.delimiters as dm
 import lexer.lexer_utils as lu
 from lexer.lexer import SignalLexicalAnalysis
 from functools import partial
+from errors import *
 
 
 class UnknownSort(Exception):
@@ -20,6 +21,11 @@ class SignalParser(object):
         self._idents_table = None
         self._constants_table = None
         self._term = None
+        self._errors_stack = None
+        self._positions_stack = None
+
+    def errors(self):
+        return self._errors_stack
 
     def parse_file(self, filename):
         with open(filename, "r") as source_file:
@@ -30,18 +36,16 @@ class SignalParser(object):
         self._tokens = TokensIterator(lexer(source_text))
         self._idents_table = lexer.identifiers()
         self._constants_table = lexer.constants()
+        self._errors_stack = []
+        self._positions_stack = []
         if sort not in SignalParser.productions:
             raise UnknownSort('Sort %s is unknown.' % sort)
         sort_production = SignalParser.productions[sort]
         imagine_root = InteriorNode('')
         if sort_production(self, imagine_root):
             self._term = Term(imagine_root.get_child_by_sort(sort))
-            # TODO seems everything is alright
-        else:
-            pass  # TODO find error reason in stack
-        if not self._tokens.only_terminate_token_left():
-            raise Exception('something wrong')
-            pass  # TODO report an error
+        if not self._tokens.only_terminate_token_left() and not self._errors_stack:
+            self._errors_stack.append(ExtraTokens(self._tokens.next_token().position()))
         return self._term
 
     def _signal_program(self, prev_node):
@@ -50,13 +54,17 @@ class SignalParser(object):
                                               self._program)
 
     def _program(self, prev_node):
-        return self._unique_by_and_production('program',
-                                              prev_node,
-                                              self._leaf_production(self._exact_code_leaf(kw.PROGRAM)),
-                                              self._procedure_identifier,
-                                              self._leaf_production(self._exact_code_leaf(dm.SEMICOLON)),
-                                              self._block,
-                                              self._leaf_production(self._exact_code_leaf(dm.DOT)))
+        return self._unique_by_and_production(
+            'program',
+            prev_node,
+            ErrorCase(self._leaf_production(self._exact_code_leaf(kw.PROGRAM)),
+                      StandardErrorHandler(make_error_case(ExpectedToken, 'PROGRAM keyword'))),
+            ErrorCase(self._procedure_identifier, StandardErrorHandler(make_error_case(MissedToken, 'Program name'))),
+            ErrorCase(self._leaf_production(self._exact_code_leaf(dm.SEMICOLON)),
+                      StandardErrorHandler(make_error_case(MissedToken, 'Semicolon'))),
+            self._block,
+            ErrorCase(self._leaf_production(self._exact_code_leaf(dm.DOT)),
+                      StandardErrorHandler(make_error_case(MissedToken, 'Dot'))))
 
     def _procedure_identifier(self, prev_node):
         return self._unique_by_and_production('procedure-identifier',
@@ -64,12 +72,16 @@ class SignalParser(object):
                                               self._identifier)
 
     def _block(self, prev_node):
-        return self._unique_by_and_production('block',
-                                              prev_node,
-                                              self._declarations,
-                                              self._leaf_production(self._exact_code_leaf(kw.BEGIN)),
-                                              self._statements_list,
-                                              self._leaf_production(self._exact_code_leaf(kw.END)))
+        return self._unique_by_and_production(
+            'block',
+            prev_node,
+            self._declarations,
+            ErrorCase(self._leaf_production(self._exact_code_leaf(kw.BEGIN)),
+                      StandardErrorHandler(make_error_case(ExpectedToken, 'BEGIN keyword'))),
+            self._statements_list,
+            ErrorCase(self._leaf_production(self._exact_code_leaf(kw.END)),
+                      StandardErrorHandler(make_error_case(ExpectedToken, 'END keyword')))
+        )
 
     def _declarations(self, prev_node):
         return self._unique_by_and_production('declarations',
@@ -80,23 +92,40 @@ class SignalParser(object):
         return self._unique_by_or(
             'statement',
             prev_node,
-            self._create_raw_and(self._unsigned_integer,
-                                 self._leaf_production(self._exact_code_leaf(dm.COLON)),
-                                 self._statement),
-            self._create_raw_and(self._leaf_production(self._exact_code_leaf(kw.GOTO)),
-                                 self._unsigned_integer,
-                                 self._leaf_production(self._exact_code_leaf(dm.SEMICOLON))),
-            self._create_raw_and(self._leaf_production(self._exact_code_leaf(kw.IN)),
-                                 self._unsigned_integer,
-                                 self._leaf_production(self._exact_code_leaf(dm.SEMICOLON))),
-            self._create_raw_and(self._leaf_production(self._exact_code_leaf(kw.OUT)),
-                                 self._unsigned_integer,
-                                 self._leaf_production(self._exact_code_leaf(dm.SEMICOLON))),
-            self._create_raw_and(self._leaf_production(self._exact_code_leaf(kw.LINK)),
-                                 self._variable_identifier,
-                                 self._leaf_production(self._exact_code_leaf(dm.COMMA)),
-                                 self._unsigned_integer,
-                                 self._leaf_production(self._exact_code_leaf(dm.SEMICOLON)))
+            self._create_raw_and(
+                self._unsigned_integer,
+                ErrorCase(self._leaf_production(self._exact_code_leaf(dm.COLON)),
+                          StandardErrorHandler(make_error_case(MissedToken, 'Colon'))),
+                ErrorCase(self._statement,
+                          StandardErrorHandler(make_error_case(EmptyLabeledStatement)))
+            ),
+            self._create_raw_and(
+                self._leaf_production(self._exact_code_leaf(kw.GOTO)),
+                ErrorCase(self._unsigned_integer, StandardErrorHandler(make_error_case(GotoStatementArgument))),
+                ErrorCase(self._leaf_production(self._exact_code_leaf(dm.SEMICOLON)),
+                          StandardErrorHandler(make_error_case(MissedToken, 'Goto statement semicolon')))
+            ),
+            self._create_raw_and(
+                self._leaf_production(self._exact_code_leaf(kw.IN)),
+                ErrorCase(self._unsigned_integer, StandardErrorHandler(make_error_case(InStatementArgument))),
+                ErrorCase(self._leaf_production(self._exact_code_leaf(dm.SEMICOLON)),
+                          StandardErrorHandler(make_error_case(MissedToken, 'In statement semicolon')))
+            ),
+            self._create_raw_and(
+                self._leaf_production(self._exact_code_leaf(kw.OUT)),
+                ErrorCase(self._unsigned_integer, StandardErrorHandler(make_error_case(OutStatementArgument))),
+                ErrorCase(self._leaf_production(self._exact_code_leaf(dm.SEMICOLON)),
+                          StandardErrorHandler(make_error_case(MissedToken, 'Out statement semicolon')))
+            ),
+            self._create_raw_and(
+                self._leaf_production(self._exact_code_leaf(kw.LINK)),
+                ErrorCase(self._variable_identifier, StandardErrorHandler(make_error_case(LinkStatementArguments))),
+                ErrorCase(self._leaf_production(self._exact_code_leaf(dm.COMMA)),
+                          StandardErrorHandler(make_error_case(MissedToken, 'Coma'))),
+                ErrorCase(self._unsigned_integer, StandardErrorHandler(make_error_case(LinkStatementArguments))),
+                ErrorCase(self._leaf_production(self._exact_code_leaf(dm.SEMICOLON)),
+                          StandardErrorHandler(make_error_case(MissedToken, 'Link statement semicolon')))
+            )
         )
 
     def _statements_list(self, prev_node):
@@ -107,21 +136,29 @@ class SignalParser(object):
                                   self._empty_leaf)
 
     def _label_declarations(self, prev_node):
-        return self._unique_by_or('label-declarations',
-                                  prev_node,
-                                  self._create_raw_and(self._leaf_production(self._exact_code_leaf(kw.LABEL)),
-                                                       self._unsigned_integer,
-                                                       self._labels_list,
-                                                       self._leaf_production(self._exact_code_leaf(dm.SEMICOLON))),
-                                  self._empty_leaf)
+        return self._unique_by_or(
+            'label-declarations',
+            prev_node,
+            self._create_raw_and(
+                self._leaf_production(self._exact_code_leaf(kw.LABEL)),
+                ErrorCase(self._unsigned_integer, StandardErrorHandler(make_error_case(InvalidLabelDefinition))),
+                self._labels_list,
+                ErrorCase(self._leaf_production(self._exact_code_leaf(dm.SEMICOLON)),
+                          StandardErrorHandler(make_error_case(MissedToken, 'Semicolon')))
+            ),
+            self._empty_leaf)
 
     def _labels_list(self, prev_node):
-        return self._unique_by_or('labels-list',
-                                  prev_node,
-                                  self._create_raw_and(self._leaf_production(self._exact_code_leaf(dm.COMMA)),
-                                                       self._unsigned_integer,
-                                                       self._labels_list),
-                                  self._empty_leaf)
+        return self._unique_by_or(
+            'labels-list',
+            prev_node,
+            self._create_raw_and(
+                self._leaf_production(self._exact_code_leaf(dm.COMMA)),
+                ErrorCase(self._unsigned_integer, StandardErrorHandler(make_error_case(InvalidLabelDefinition))),
+                self._labels_list
+            ),
+            self._empty_leaf
+        )
 
     def _variable_identifier(self, prev_node):
         return self._unique_by_and_production('variable-identifier',
@@ -138,9 +175,22 @@ class SignalParser(object):
                                               prev_node,
                                               self._leaf_production(lu.is_constant_code))
 
+    def _with_error(self, handle_case, *args):
+        try:
+            handle_case_result = handle_case(*args)
+            if not handle_case_result:
+                self._positions_stack.append(self._tokens.current_token().position())
+            else:
+                self._positions_stack = []
+            return handle_case_result
+        except SyntaxErrorFound, e:
+            self._positions_stack.append(self._tokens.current_token().position())
+            self._errors_stack.append(e.make_error_report(self._positions_stack[0]))
+            self._positions_stack = []
+
     def _with_checkpoint(self, func, *args):
         self._tokens.save_checkpoint()
-        func_result = func(*args)
+        func_result = self._with_error(func, *args)
         if func_result:
             self._tokens.confirm_last_checkpoint()
         else:

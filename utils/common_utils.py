@@ -4,7 +4,10 @@ __author__ = 'mandriy'
 class Position(object):
 
     def __init__(self, position):
-        self._line, self._column = tuple(position)
+        if isinstance(position, Position):
+            self._column, self._line = position.position()
+        else:
+            self._column, self._line, = tuple(position)
 
     def line(self):
         return self._line
@@ -13,13 +16,13 @@ class Position(object):
         return self._column
 
     def position(self):
-        return self._line, self._column
+        return self._column, self._line,
 
     def __eq__(self, other):
         if isinstance(other, Position):
             return self._line == other.line() and self._column == other.column()
         elif isinstance(other, tuple) and len(other) == 2:
-            return self._line == other[0] and self._column == other[1]
+            return self._line == other[1] and self._column == other[0]
         else:
             return False
 

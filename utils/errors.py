@@ -14,5 +14,5 @@ class CompilingError(object):
         return self._pos
 
     def what(self):
-        pos, line = self.position()
-        return "%s. Line %d, position %d." % (self._msg, line, self._pos.position())
+        col, line = self._pos.position()
+        return "%s. Line %d, column %d." % (self._msg, line, col)

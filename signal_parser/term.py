@@ -45,7 +45,6 @@ class Term(object):
         return term_equal(self._root, other._root)
 
 
-# TODO add position mixin
 class Node(object):
 
     def __init__(self, label):
@@ -63,6 +62,9 @@ class LeafNode(Node):
 
     def token(self):
         return self._token
+
+    def position(self):
+        return self._token.position()
 
 
 class EmptyNode(LeafNode):
@@ -105,6 +107,14 @@ class InteriorNode(Node):
 
     def children(self):
         return self._childred
+
+    def position(self):
+        def lookup_position(node):
+            if isinstance(node, LeafNode):
+                return node.position()
+            else:
+                lookup_position(node.children[0])
+        return lookup_position(self)
 
 
 def term_to_dot(term, node_style=(), edge_style=()):
