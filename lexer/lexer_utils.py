@@ -79,6 +79,7 @@ class CodeTable(object):
     def contain_item(self, item):
         return item in self._rep.values()
 
+
 _identifiers_interval = (1001, None)
 _constants_interval = (501, 1000)
 

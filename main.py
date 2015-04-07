@@ -36,3 +36,25 @@ args_parser.add_argument('-td',
 
 compiler_arguments = args_parser.parse_args(sys.argv[1:])
 print compiler_arguments
+#
+#
+# from signal_parser.parser import SignalParser
+# from signal_parser.term import *
+#
+# parser = SignalParser()
+# term = parser.parse(',1,2', 'labels-list')
+# program = parser.parse('PROGRAM p1; LABEL 1,2; BEGIN IN 1; END.')
+# res = term._root.match(',', 'unsigned-integer', ',', 'unsigned-integer')
+# res = term._root.match(',', 'unsigned-integer', ',', 'unsigned-integer', 'labels-list')
+#
+# def print_res():
+#     for i in xrange(len(res)):
+#         if isinstance(res[i], LeafNode):
+#             print res[i].get_label()
+#         else:
+#             term_to_dot(Term(res[i])).write_svg('test%d.svg' % i)
+#
+#
+#
+# term._root.match('LABEL', 'unsigned-integer', 'labels-list', ';')
+# res = program._root.match('PROGRAM', 'identifier', ';', 'declarations', 'BEGIN', 'statements-list' ,'END' ,'.')
