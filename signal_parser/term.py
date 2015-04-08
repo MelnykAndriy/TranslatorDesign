@@ -17,20 +17,29 @@ class Term(object):
                 match_dict[node.label()](node)
         self.nodes_traversal(partial(_match, up_match_dict), partial(_match, down_match_dict))
 
-    def traversal(self, up_func=lambda node, parent_node: None, down_func=lambda node, parent_node: None):
+    def foreach(self, post_rules=(), pre_rules=()):
+        def rules_chain(rules, node):
+            for rule in rules:
+                rule(node)
+        self.nodes_traversal(
+            pre_func=partial(rules_chain, pre_rules),
+            post_func=partial(rules_chain, post_rules)
+        )
+
+    def traverse_nodes_dependencies(self, post_func=lambda node, parent_node: None, pre_func=lambda node, parent_node: None):
         def traversal_inner(node, parent_node):
-            down_func(node, parent_node)
+            pre_func(node, parent_node)
             if isinstance(node, InteriorNode):
                 node.iterate_children(traversal_inner)
-            up_func(node, parent_node)
+            post_func(node, parent_node)
         self._root.iterate_children(traversal_inner)
 
-    def nodes_traversal(self, up_func=lambda node: None, down_func=lambda node: None):
+    def nodes_traversal(self, post_func=lambda node: None, pre_func=lambda node: None):
         def traversal_inner(node):
-            down_func(node)
+            pre_func(node)
             if isinstance(node, InteriorNode):
                 node.iterate_children(lambda child_node, parent: traversal_inner(child_node))
-            up_func(node)
+            post_func(node)
         traversal_inner(self._root)
 
     def __eq__(self, other):
@@ -119,7 +128,7 @@ class InteriorNode(Node):
         if not sorts:
             if len(self._children) == 1:
                 if isinstance(self._children[0], InteriorNode):
-                    return self._children[0].sort_traversal(*sorts)
+                    return self._children[0].match(*sorts)
                 elif isinstance(self._children[0], EmptyNode):
                     return []
             return None
@@ -176,8 +185,8 @@ def term_to_dot(term, node_style=(), edge_style=()):
         edge = pydot.Edge(parent_vertex, child_vertex, *edge_style)
         graph.add_edge(edge)
 
-    term.traversal(down_func=link_edges,
-                   up_func=lambda node, parent_node: indexes.pop())
+    term.traverse_nodes_dependencies(pre_func=link_edges,
+                   post_func=lambda node, parent_node: indexes.pop())
     return graph
 
 

@@ -27,6 +27,13 @@ class Position(object):
             return False
 
 
+def gen_asm_filename(base_name):
+    if base_name.endswith('.signal'):
+        return base_name.replace('.signal', '.asm')
+
+    return base_name + '.asm'
+
+
 def interval(begin, end=0, infinite=False):
     num = begin
     while infinite or num <= end:

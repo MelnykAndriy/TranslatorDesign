@@ -10,7 +10,10 @@ PROGRAM test1 ;
       400;
 
 BEGIN 
-    
+    LINK port1, 1;
+    LINK port2, 2;
+    LINK port3, 3;
+
     GOTO 300;
     
   100:  *< some comment >*
@@ -18,10 +21,11 @@ BEGIN
     OUT 3;
   200:
     GOTO 100;  *< bad programming style >*
-    LINK var1, 0;
+
+    OUT 1;
     
     GOTO 200;
   300:
-    OUT 0;
+    OUT 1;
   
 END.

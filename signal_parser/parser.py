@@ -18,25 +18,28 @@ class SignalParser(object):
 
     def __init__(self):
         self._tokens = None
-        self._idents_table = None
-        self._constants_table = None
         self._term = None
         self._errors_stack = None
         self._positions_stack = None
+        self._lexer = None
 
     def errors(self):
         return self._errors_stack
+
+    def identifiers(self):
+        return self._lexer.identifiers()
+
+    def literals(self):
+        return self._lexer.constants()
 
     def parse_file(self, filename):
         with open(filename, "r") as source_file:
             return self.parse(source_file.read())
 
     def parse(self, source_text, sort='signal-program'):
-        lexer = SignalLexicalAnalysis()
-        self._tokens = TokensIterator(lexer(source_text))
-        self._idents_table = lexer.identifiers()
-        self._constants_table = lexer.constants()
-        self._errors_stack = []
+        self._lexer = SignalLexicalAnalysis()
+        self._tokens = TokensIterator(self._lexer(source_text))
+        self._errors_stack = [] + self._lexer.errors()
         self._positions_stack = []
         if sort not in SignalParser.productions:
             raise UnknownSort('Sort %s is unknown.' % sort)
