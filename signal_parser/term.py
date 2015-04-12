@@ -185,12 +185,11 @@ def term_to_dot(term, node_style=(), edge_style=()):
         edge = pydot.Edge(parent_vertex, child_vertex, *edge_style)
         graph.add_edge(edge)
 
-    term.traverse_nodes_dependencies(pre_func=link_edges,
-                   post_func=lambda node, parent_node: indexes.pop())
+    term.traverse_nodes_dependencies(
+        pre_func=link_edges,
+        post_func=lambda node, parent_node: indexes.pop()
+    )
     return graph
 
-
-def print_term(term):
-    pass
 
 

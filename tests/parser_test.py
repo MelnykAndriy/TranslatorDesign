@@ -3,30 +3,36 @@ from _curses import error
 __author__ = 'mandriy'
 
 import unittest
-from signal_parser.parser import InteriorNode, LeafNode, EmptyNode, SignalParser
-from signal_parser.term import Term, term_to_dot
+from signal_parser.parser import SignalParser
+from signal_parser.term import EmptyNode
+from signal_parser.tree_construction import StandardTreeBuilder
 from lexer.lexer_utils import Token
 from signal_parser.errors import *
 
 
-def term_from_test_rep(term_rep):
+def term_from_test_rep(term_rep, tree_builder_class=StandardTreeBuilder):
     """
     :param lst: it has to be tuple of form (interior-node-sort, childs)
     childs is a list of form [leaf-node-sort or (interior-node-sort, childs) * ]
     :return: term
     """
-    def term_from_test_rep_inner(term_rep_inner):
+    tree_builder = tree_builder_class()
+    root = tree_builder.build_tree()
+
+    def term_from_test_rep_inner(term_rep_inner, prev_node):
         if isinstance(term_rep_inner, tuple):
-            node = InteriorNode(term_rep_inner[0])
+            node = tree_builder.build_interior_node(term_rep_inner[0])
+            tree_builder.build_dependency(prev_node, node)
             children = term_rep_inner[1]
             for child in children:
-                node.add_child(term_from_test_rep_inner(child))
+                term_from_test_rep_inner(child, node)
             return node
         elif isinstance(term_rep_inner, EmptyNode):
             return term_rep_inner
         else:
-            return LeafNode(Token(term_rep_inner, -1, (0, 0)))
-    return Term(term_from_test_rep_inner(term_rep))
+            return tree_builder.build_leaf_node(prev_node, Token(term_rep_inner, -1, (0, 0)))
+    term_from_test_rep_inner(term_rep, root)
+    return tree_builder.get_tree()
 
 
 def get_identifier(ident):

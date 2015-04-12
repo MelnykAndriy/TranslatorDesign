@@ -1,13 +1,13 @@
 __author__ = 'mandriy'
 
-from parser_utils import TokensIterator, TokensExhausted
-from term import *
+from parser_utils import TokensIterator
 import lexer.keywords as kw
 import lexer.delimiters as dm
 import lexer.lexer_utils as lu
 from lexer.lexer import SignalLexicalAnalysis
 from functools import partial
 from errors import *
+from tree_construction import StandardTreeBuilder
 
 
 class UnknownSort(Exception):
@@ -17,8 +17,8 @@ class UnknownSort(Exception):
 class SignalParser(object):
 
     def __init__(self):
+        self._tree_builder = None
         self._tokens = None
-        self._term = None
         self._errors_stack = None
         self._positions_stack = None
         self._lexer = None
@@ -36,20 +36,21 @@ class SignalParser(object):
         with open(filename, "r") as source_file:
             return self.parse(source_file.read())
 
-    def parse(self, source_text, sort='signal-program'):
+    def parse(self, source_text, sort='signal-program', tree_builder=StandardTreeBuilder):
         self._lexer = SignalLexicalAnalysis()
         self._tokens = TokensIterator(self._lexer(source_text))
         self._errors_stack = [] + self._lexer.errors()
         self._positions_stack = []
+        self._tree_builder = tree_builder()
+        tree = None
         if sort not in SignalParser.productions:
             raise UnknownSort('Sort %s is unknown.' % sort)
         sort_production = SignalParser.productions[sort]
-        imagine_root = InteriorNode('')
-        if sort_production(self, imagine_root):
-            self._term = Term(imagine_root.get_child_by_sort(sort))
+        if sort_production(self, self._tree_builder.build_tree()):
+            tree = self._tree_builder.get_tree()
         if not self._tokens.only_terminate_token_left() and not self._errors_stack:
             self._errors_stack.append(ExtraTokens(self._tokens.next_token().position()))
-        return self._term
+        return tree
 
     def _signal_program(self, prev_node):
         return self._unique_by_and_production('signal-program',
@@ -201,9 +202,9 @@ class SignalParser(object):
         return func_result
 
     def _unique_by_and_production(self, production, prev_node, *handle_cases):
-        node = InteriorNode(production)
+        node = self._tree_builder.build_interior_node(production)
         if self._raw_unique_by_and(node, *handle_cases):
-            prev_node.add_child(node)
+            self._tree_builder.build_dependency(prev_node, node)
             return True
         return False
 
@@ -226,13 +227,12 @@ class SignalParser(object):
     def _leaf_node(self, leaf_p, prev_node):
         token = self._tokens.next_token()
         if leaf_p(token.code()):
-            prev_node.add_child(LeafNode(token))
+            self._tree_builder.build_leaf_node(prev_node, token)
             return True
         return False
 
-    @staticmethod
-    def _empty_leaf(prev_node):
-        prev_node.add_child(EmptyNode())
+    def _empty_leaf(self, prev_node):
+        self._tree_builder.build_empty_node(prev_node)
         return True
     
     @staticmethod
@@ -243,7 +243,7 @@ class SignalParser(object):
         nodes = []
         
         def try_parse(handle_case):
-            nodes.append(InteriorNode(production))
+            nodes.append(self._tree_builder.build_interior_node(production))
             return self._with_checkpoint(handle_case, nodes[len(nodes) - 1])
 
         successfully = self._with_checkpoint(reduce,
@@ -251,7 +251,7 @@ class SignalParser(object):
                                              handle_cases,
                                              False)
         if successfully:
-            prev_node.add_child(nodes.pop())
+            self._tree_builder.build_dependency(prev_node, nodes.pop())
             return True
         return False
 
