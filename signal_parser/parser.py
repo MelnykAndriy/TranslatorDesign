@@ -32,9 +32,9 @@ class SignalParser(object):
     def literals(self):
         return self._lexer.constants()
 
-    def parse_file(self, filename):
+    def parse_file(self, filename, tree_builder=StandardTreeBuilder):
         with open(filename, "r") as source_file:
-            return self.parse(source_file.read())
+            return self.parse(source_file.read(), tree_builder=tree_builder)
 
     def parse(self, source_text, sort='signal-program', tree_builder=StandardTreeBuilder):
         self._lexer = SignalLexicalAnalysis()

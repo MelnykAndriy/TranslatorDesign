@@ -23,6 +23,9 @@ class Token(object):
     def __eq__(self, other):
         return self._token__code == other.code()
 
+    def __str__(self):
+        return self._label
+
 
 class SignalLexicalError(CompilingError):
 

@@ -101,9 +101,6 @@ class InteriorNode(Node):
         else:
             raise IsNotANode(child_node)
 
-    def is_root(self):
-        return self._is_root
-
     def iterate_children(self, func):
         for child in self._children:
             func(child, self)
@@ -190,6 +187,3 @@ def term_to_dot(term, node_style=(), edge_style=()):
         post_func=lambda node, parent_node: indexes.pop()
     )
     return graph
-
-
-

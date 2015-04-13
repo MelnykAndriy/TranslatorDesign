@@ -29,6 +29,7 @@ class SignalLexicalAnalysis(object):
 
     def __call__(self, program_text):
         file_coordinates = [0, 1]
+        self._errors = []
 
         def pos_inc(c):
             if c == '\t':
