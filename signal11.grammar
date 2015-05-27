@@ -2,47 +2,47 @@
 
 # parser 
 
-<signal-program> --> <program> ;
+<signal-program> --> <program>
 
-<program> --> PROGRAM <procedure-identifier> ';' 
-                <block> '.' ;
+<program> --> PROGRAM <procedure-identifier> ;
+                <block> .
                 
 <block> --> <declarations> 
             BEGIN
                 <statements-list>
-            END ; 
+            END
                
-<declarations> --> <label-declarations> ;
+<declarations> --> <label-declarations>
 
-<label-declarations> --> LABEL <unsigned-integer> <labels-list> ';' |  ; 
+<label-declarations> --> LABEL <unsigned-integer> <labels-list> ; |  <empty>
 
-<labels-list> --> ',' <unsigned-integer> <labels-list> | ;
+<labels-list> --> , <unsigned-integer> <labels-list> | <empty>
 
-<statements-list> --> <statement> <statements-list> | ;
+<statements-list> --> <statement> <statements-list> | <empty>
 
 <statement> --> <unsigned-integer> : <statement> 
-                | GOTO <unsigned-integer> ';'
-                | LINK <variable-identifier> ',' <unsigned-integer> ';'
-                | IN <unsigned-integer> ';'
-                | OUT <unsigned-integer> ';' ;
+                | GOTO <unsigned-integer> ;
+                | LINK <variable-identifier> , <unsigned-integer> ;
+                | IN <unsigned-integer> ;
+                | OUT <unsigned-integer> ;
                 
-<variable-identifier> --> <identifier> ;
+<variable-identifier> --> <identifier>
 
-<procedure-identifier> --> <identifier> ; 
+<procedure-identifier> --> <identifier>
 
 
 # lexer 
 
-<identifier> --> <letter><string> ;
+<identifier> --> <letter><string>
 
 <string> -->  <letter><string> 
             | <digit><string> 
-            |  ;
+            |  <empty>
             
-<unsigned-integer> --> <digit> <digits-string> ;
+<unsigned-integer> --> <digit> <digits-string>
 
-<digits-string> --> <digit> <digits-string> | ;
+<digits-string> --> <digit> <digits-string> | <empty>
 
-<digit> --> [0-9] ;
+<digit> --> [0-9]
 
-<letter> --> [A-Z] ;
+<letter> --> [A-Z]
