@@ -16,6 +16,15 @@
 
 <label-declarations> --> LABEL <unsigned-integer> <labels-list> ; |  <empty>
 
+<constant-declarations> --> CONST <constant-declarations-list> | <empty>
+
+<constant-declarations-list> --> <constant-declaration> <constant-declarations-list> | <empty>
+
+<constant-declaration> --> <constant-identifier> = <constant> ; 
+
+<constant> --> <unsigned-integer> 
+
+
 <labels-list> --> , <unsigned-integer> <labels-list> | <empty>
 
 <statements-list> --> <statement> <statements-list> | <empty>
@@ -30,6 +39,7 @@
 
 <procedure-identifier> --> <identifier>
 
+<constant-identifier> --> <identifier> 
 
 # lexer 
 
