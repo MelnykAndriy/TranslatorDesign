@@ -12,9 +12,7 @@
                 <statements-list>
             END
                
-<declarations> --> <label-declarations>
-
-<label-declarations> --> LABEL <unsigned-integer> <labels-list> ; |  <empty>
+<declarations> --> <constant-declarations>
 
 <constant-declarations> --> CONST <constant-declarations-list> | <empty>
 
@@ -22,26 +20,23 @@
 
 <constant-declaration> --> <constant-identifier> = <constant> ; 
 
-<constant> --> <unsigned-integer> 
+<constant> --> <sign> <unsigned-constant>
 
-
-<labels-list> --> , <unsigned-integer> <labels-list> | <empty>
-
-<statements-list> --> <statement> <statements-list> | <empty>
-
-<statement> --> <unsigned-integer> : <statement> 
-                | GOTO <unsigned-integer> ;
-                | LINK <variable-identifier> , <unsigned-integer> ;
-                | IN <unsigned-integer> ;
-                | OUT <unsigned-integer> ;
-                
-<variable-identifier> --> <identifier>
+<statements-list> --> <empty>
 
 <procedure-identifier> --> <identifier>
 
 <constant-identifier> --> <identifier> 
 
 # lexer 
+
+<unsigned-constant> --> <integer-part><fractional-part>
+
+<integer-part> --> <unsigned-integer>
+
+<fractional-part> --> #<sign><unsigned-integer> | <empty>
+
+<sign> --> + | - | <empty>
 
 <identifier> --> <letter><string>
 
