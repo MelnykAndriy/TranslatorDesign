@@ -7,7 +7,7 @@ import lexer.lexer_utils as lu
 from lexer.lexer import SignalLexicalAnalysis
 from functools import partial
 from errors import *
-from tree_construction import StandardTreeBuilder
+from term import StandardTreeBuilder
 
 
 class UnknownSort(Exception):

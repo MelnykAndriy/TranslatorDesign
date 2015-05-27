@@ -6,6 +6,31 @@ from functools import partial
 import pydot
 
 
+class StandardTreeBuilder(object):
+
+    def __init__(self):
+        super(StandardTreeBuilder, self).__init__()
+        self._imagine_root = None
+
+    def build_tree(self):
+        self._imagine_root = InteriorNode('')
+        return self._imagine_root
+
+    def get_tree(self):
+        return Term(self._imagine_root.children()[0])
+
+    def build_empty_node(self, prev_node):
+        prev_node.add_child(EmptyNode())
+
+    def build_leaf_node(self, prev_node, leaf_node_token):
+        prev_node.add_child(LeafNode(leaf_node_token))
+
+    def build_interior_node(self, interior_node_sort):
+        return InteriorNode(interior_node_sort)
+
+    def build_dependency(self, parent_node, child_node):
+        parent_node.add_child(child_node)
+
 class Term(object):
 
     def __init__(self, root):
