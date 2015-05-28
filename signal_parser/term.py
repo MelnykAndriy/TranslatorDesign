@@ -31,6 +31,7 @@ class StandardTreeBuilder(object):
     def build_dependency(self, parent_node, child_node):
         parent_node.add_child(child_node)
 
+
 class Term(object):
 
     def __init__(self, root):

@@ -90,82 +90,86 @@ class SignalParser(object):
     def _declarations(self, prev_node):
         return self._unique_by_and_production('declarations',
                                               prev_node,
-                                              self._label_declarations)
+                                              self._constant_declarations)
 
-    def _statement(self, prev_node):
+    def _constant_declarations(self, prev_node):
         return self._unique_by_or(
-            'statement',
+            'constant-declarations',
             prev_node,
-            self._create_raw_and(
-                self._unsigned_integer,
-                ErrorCase(self._leaf_production(self._exact_code_leaf(dm.COLON)),
-                          StandardErrorHandler(make_error_case(MissedToken, 'Colon'))),
-                ErrorCase(self._statement,
-                          StandardErrorHandler(make_error_case(EmptyLabeledStatement)))
-            ),
-            self._create_raw_and(
-                self._leaf_production(self._exact_code_leaf(kw.GOTO)),
-                ErrorCase(self._unsigned_integer, StandardErrorHandler(make_error_case(GotoStatementArgument))),
-                ErrorCase(self._leaf_production(self._exact_code_leaf(dm.SEMICOLON)),
-                          StandardErrorHandler(make_error_case(MissedToken, 'Goto statement semicolon')))
-            ),
-            self._create_raw_and(
-                self._leaf_production(self._exact_code_leaf(kw.IN)),
-                ErrorCase(self._unsigned_integer, StandardErrorHandler(make_error_case(InStatementArgument))),
-                ErrorCase(self._leaf_production(self._exact_code_leaf(dm.SEMICOLON)),
-                          StandardErrorHandler(make_error_case(MissedToken, 'In statement semicolon')))
-            ),
-            self._create_raw_and(
-                self._leaf_production(self._exact_code_leaf(kw.OUT)),
-                ErrorCase(self._unsigned_integer, StandardErrorHandler(make_error_case(OutStatementArgument))),
-                ErrorCase(self._leaf_production(self._exact_code_leaf(dm.SEMICOLON)),
-                          StandardErrorHandler(make_error_case(MissedToken, 'Out statement semicolon')))
-            ),
-            self._create_raw_and(
-                self._leaf_production(self._exact_code_leaf(kw.LINK)),
-                ErrorCase(self._variable_identifier, StandardErrorHandler(make_error_case(LinkStatementArguments))),
-                ErrorCase(self._leaf_production(self._exact_code_leaf(dm.COMMA)),
-                          StandardErrorHandler(make_error_case(MissedToken, 'Coma'))),
-                ErrorCase(self._unsigned_integer, StandardErrorHandler(make_error_case(LinkStatementArguments))),
-                ErrorCase(self._leaf_production(self._exact_code_leaf(dm.SEMICOLON)),
-                          StandardErrorHandler(make_error_case(MissedToken, 'Link statement semicolon')))
-            )
+            self._create_raw_and(self._leaf_production(self._exact_code_leaf(kw.CONST)),
+                                 self._constant_declarations_list),
+            self._empty_leaf)
+
+    def _constant_declarations_list(self, prev_node):
+        return self._unique_by_or(
+            'constants-declarations-list',
+            prev_node,
+            self._create_raw_and(self._constant_declaration,
+                                 self._constant_declarations_list),
+            self._empty_leaf
+        )
+
+    def _constant_declaration(self, prev_node):
+        return self._unique_by_and_production(
+            'constant-declaration',
+            prev_node,
+            self._constant_identifier,
+            ErrorCase(self._leaf_production(self._exact_code_leaf(dm.EQUAL)),
+                      StandardErrorHandler(make_error_case(ExpectedToken, '='))),
+            ErrorCase(self._constant, StandardErrorHandler(make_error_case(MissedToken, 'Constant value'))),
+            ErrorCase(self._leaf_production(self._exact_code_leaf(dm.SEMICOLON)),
+                      StandardErrorHandler(make_error_case(MissedToken, 'Semicolon')))
+        )
+
+    def _constant(self, prev_node):
+        return self._unique_by_and_production(
+            'constant',
+            prev_node,
+            self._sign,
+            self._unsigned_constant
+        )
+
+    def _sign(self, prev_node):
+        return self._unique_by_or(
+            'sign',
+            prev_node,
+            self._leaf_production(self._exact_code_leaf(dm.MINUS)),
+            self._leaf_production(self._exact_code_leaf(dm.PLUS)),
+            self._empty_leaf
+        )
+
+    def _unsigned_constant(self, prev_node):
+        return self._unique_by_and_production(
+            'unsigned-constant',
+            prev_node,
+            self._integer_part,
+            self._fractional_part
+        )
+
+    def _integer_part(self, prev_node):
+        return self._unique_by_and_production(
+            'integer-part',
+            prev_node,
+            self._unsigned_integer
+        )
+
+    def _fractional_part(self, prev_node):
+        return self._unique_by_or(
+            'fractional-part',
+            prev_node,
+            self._leaf_production(self._exact_code_leaf(dm.SHARP)),
+            self._sign,
+            ErrorCase(self._unsigned_integer,
+                      StandardErrorHandler(make_error_case(ExpectedToken, 'Number')))
         )
 
     def _statements_list(self, prev_node):
         return self._unique_by_or('statements-list',
                                   prev_node,
-                                  self._create_raw_and(self._statement,
-                                                       self._statements_list),
                                   self._empty_leaf)
 
-    def _label_declarations(self, prev_node):
-        return self._unique_by_or(
-            'label-declarations',
-            prev_node,
-            self._create_raw_and(
-                self._leaf_production(self._exact_code_leaf(kw.LABEL)),
-                ErrorCase(self._unsigned_integer, StandardErrorHandler(make_error_case(InvalidLabelDefinition))),
-                self._labels_list,
-                ErrorCase(self._leaf_production(self._exact_code_leaf(dm.SEMICOLON)),
-                          StandardErrorHandler(make_error_case(MissedToken, 'Semicolon')))
-            ),
-            self._empty_leaf)
-
-    def _labels_list(self, prev_node):
-        return self._unique_by_or(
-            'labels-list',
-            prev_node,
-            self._create_raw_and(
-                self._leaf_production(self._exact_code_leaf(dm.COMMA)),
-                ErrorCase(self._unsigned_integer, StandardErrorHandler(make_error_case(InvalidLabelDefinition))),
-                self._labels_list
-            ),
-            self._empty_leaf
-        )
-
-    def _variable_identifier(self, prev_node):
-        return self._unique_by_and_production('variable-identifier',
+    def _constant_identifier(self, prev_node):
+        return self._unique_by_and_production('constant-identifier',
                                               prev_node,
                                               self._identifier)
 
@@ -260,10 +264,15 @@ class SignalParser(object):
                    'procedure-identifier': _procedure_identifier,
                    'block': _block,
                    'declarations': _declarations,
-                   'statement': _statement,
+                   'constant-declarations': _constant_declarations,
+                   'constant-declarations-list': _constant_declarations_list,
+                   'constant-declaration': _constant_declaration,
+                   'constant': _constant,
+                   'sign': _sign,
+                   'unsigned-constant': _unsigned_constant,
+                   'integer-part': _integer_part,
+                   'fractional-part': _fractional_part,
+                   'constant-identifier': _constant_identifier,
                    'statements-list': _statements_list,
-                   'label-declarations': _label_declarations,
-                   'labels-list': _labels_list,
-                   'variable-identifier': _variable_identifier,
                    'identifier': _identifier,
                    'unsigned-integer': _unsigned_integer}

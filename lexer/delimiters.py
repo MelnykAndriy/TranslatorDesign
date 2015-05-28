@@ -1,15 +1,20 @@
 __author__ = 'mandriy'
 
-COMMA = ord(',')
 SEMICOLON = ord(';')
 DOT = ord('.')
-COLON = ord(':')
+PLUS = ord('+')
+MINUS = ord('-')
+EQUAL = ord('=')
+SHARP = ord('#')
+
 
 _single_character_delimiters = {
-    ',': COMMA,
     ';': SEMICOLON,
     '.': DOT,
-    ':': COLON
+    '+': PLUS,
+    '-': MINUS,
+    '=': EQUAL,
+    '#': SHARP
 }
 
 

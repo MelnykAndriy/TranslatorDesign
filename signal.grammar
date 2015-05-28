@@ -28,8 +28,6 @@
 
 <constant-identifier> --> <identifier> 
 
-# lexer 
-
 <unsigned-constant> --> <integer-part><fractional-part>
 
 <integer-part> --> <unsigned-integer>
@@ -37,6 +35,8 @@
 <fractional-part> --> #<sign><unsigned-integer> | <empty>
 
 <sign> --> + | - | <empty>
+
+# lexer
 
 <identifier> --> <letter><string>
 

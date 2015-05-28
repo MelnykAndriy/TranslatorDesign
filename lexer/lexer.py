@@ -110,18 +110,18 @@ class SignalLexicalAnalysis(object):
                                                                                       current_character)
                     continue
 
-                if current_character == '*':
+                if current_character == '(':
                     current_character = program.next()
-                    if current_character == '<':
-                        inside_comment = canon_file_pos('*')
+                    if current_character == '*':
+                        inside_comment = canon_file_pos('(')
                         prev_char = ' '
-                        while not (prev_char == '>' and current_character == '*'):
+                        while not (prev_char == '*' and current_character == ')'):
                             prev_char = current_character
                             current_character = program.next()
                         inside_comment = False
                         current_character = program.next()
                     else:
-                        report_invalid_token('*')
+                        report_invalid_token('(')
                     continue
 
                 report_invalid_token(current_character)

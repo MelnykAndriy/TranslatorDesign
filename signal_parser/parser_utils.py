@@ -21,7 +21,7 @@ class TokensIterator(object):
             terminate_token_pos = (pos.column() + len(token.label()), pos.line())
         else:
             terminate_token_pos = (0, 0)
-        self._terminate_token = lexer.lexer_utils.Token('#', ord('#'), terminate_token_pos)
+        self._terminate_token = lexer.lexer_utils.Token('$', ord('$'), terminate_token_pos)
         self._tokens = tuple(list(tokens) + [self._terminate_token])
         self._current_token = 0
         self._checkpoint_stack = []
