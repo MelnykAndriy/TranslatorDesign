@@ -1,25 +1,26 @@
 __author__ = 'mandriy'
 
 SEMICOLON = ord(';')
-DOT = ord('.')
-PLUS = ord('+')
-MINUS = ord('-')
-EQUAL = ord('=')
-SHARP = ord('#')
+COLON = ord(':')
+COMMA = ord(',')
+OPEN_PARENTHESIS = ord('(')
+CLOSE_PARENTHESIS = ord(')')
+ASSEMBLY_INSERT_BEGIN = 301
+ASSEMBLY_INSERT_END = 302
 
-
-_single_character_delimiters = {
+_delimiters = {
     ';': SEMICOLON,
-    '.': DOT,
-    '+': PLUS,
-    '-': MINUS,
-    '=': EQUAL,
-    '#': SHARP
+    ':': COLON,
+    ',': COMMA,
+    '(': OPEN_PARENTHESIS,
+    ')': CLOSE_PARENTHESIS,
+    '($': ASSEMBLY_INSERT_BEGIN,
+    '$)': ASSEMBLY_INSERT_END
 }
 
 
 def is_delimiter_code(code):
-    return code in _single_character_delimiters.values()
+    return code in _delimiters.values()
 
 
 class BadDelimiter(Exception):
@@ -27,18 +28,18 @@ class BadDelimiter(Exception):
 
 
 def is_delimiter(s):
-    return s in _single_character_delimiters
+    return s in _delimiters
 
 
 def delimiter_code(s):
     try:
-        return _single_character_delimiters[s]
+        return _delimiters[s]
     except KeyError:
         raise BadDelimiter()
 
 
 def delimiter_by_code(code):
-    dm = [dm for dm in _single_character_delimiters if _single_character_delimiters[dm] == code]
+    dm = [dm for dm in _delimiters if _delimiters[dm] == code]
     if dm:
         return dm[0]
     else:

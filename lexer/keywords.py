@@ -1,16 +1,20 @@
 __author__ = 'mandriy'
 
 
-PROGRAM = 401
 BEGIN = 402
 END = 403
-CONST = 409
+GOTO = 404
+PROCEDURE = 405
+LABEL = 406
+RETURN = 407
 
 _keywords = {
-    'PROGRAM': PROGRAM,
+    'PROCEDURE': PROCEDURE,
     'BEGIN': BEGIN,
     'END': END,
-    'CONST': CONST
+    'GOTO': GOTO,
+    'LABEL': LABEL,
+    'RETURN': RETURN,
 }
 
 

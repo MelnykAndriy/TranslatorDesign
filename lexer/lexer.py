@@ -71,6 +71,39 @@ class SignalLexicalAnalysis(object):
                 while current_character.isspace():
                     current_character = program.next()
 
+                if current_character == '(':
+                    current_character = program.next()
+                    if current_character == '*':
+                        inside_comment = canon_file_pos('(')
+                        prev_char = ' '
+                        while not (prev_char == '*' and current_character == ')'):
+                            prev_char = current_character
+                            current_character = program.next()
+                        inside_comment = False
+                        current_character = program.next()
+                    else:
+                        combination = '(' + current_character
+                        if delimiters.is_delimiter(combination):
+                            tokens.append(Token(combination,
+                                                delimiters.delimiter_code(combination),
+                                                canon_file_pos(combination)))
+                            current_character = program.next()
+                        else:
+                            tokens.append(Token('(', ord('('), canon_file_pos('(')))
+                    continue
+
+                if current_character == '$':
+                    current_character = program.next()
+                    if current_character == ')':
+                        combination = '$' + current_character
+                        tokens.append(Token(combination,
+                                            delimiters.delimiter_code(combination),
+                                            canon_file_pos(combination)))
+                        current_character = program.next()
+                    else:
+                        report_invalid_token(current_character)
+                    continue
+
                 if delimiters.is_delimiter(current_character):
                     tokens.append(Token(current_character,
                                         ord(current_character),
@@ -108,20 +141,6 @@ class SignalLexicalAnalysis(object):
                     else:
                         current_character = iterate_to_the_token_end_and_report_error(unsiged_integer,
                                                                                       current_character)
-                    continue
-
-                if current_character == '(':
-                    current_character = program.next()
-                    if current_character == '*':
-                        inside_comment = canon_file_pos('(')
-                        prev_char = ' '
-                        while not (prev_char == '*' and current_character == ')'):
-                            prev_char = current_character
-                            current_character = program.next()
-                        inside_comment = False
-                        current_character = program.next()
-                    else:
-                        report_invalid_token('(')
                     continue
 
                 report_invalid_token(current_character)
