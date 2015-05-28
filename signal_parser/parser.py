@@ -157,10 +157,13 @@ class SignalParser(object):
         return self._unique_by_or(
             'fractional-part',
             prev_node,
-            self._leaf_production(self._exact_code_leaf(dm.SHARP)),
-            self._sign,
-            ErrorCase(self._unsigned_integer,
-                      StandardErrorHandler(make_error_case(ExpectedToken, 'Number')))
+            self._create_raw_and(
+                self._leaf_production(self._exact_code_leaf(dm.SHARP)),
+                self._sign,
+                ErrorCase(self._unsigned_integer,
+                          StandardErrorHandler(make_error_case(ExpectedToken, 'Number')))
+            ),
+            self._empty_leaf
         )
 
     def _statements_list(self, prev_node):

@@ -7,44 +7,40 @@ from generator_utils import *
 
 class SignalAsmGenerator(object):
 
-    def __init__(self, instruction_indent=4, labels_indent=2):
+    def __init__(self, instruction_indent=4):
         self._instruction_indent = instruction_indent
-        self._labels_indent = labels_indent
         self._labels_table = None
         self._identifiers = None
         self._literals = None
+        self._asm = None
 
     def generate(self, term, idents, literals):
         self._labels_table = {}
         self._identifiers = idents
         self._literals = literals
-        asm = StringIO()
+        self._asm = StringIO()
+
+        term.sort_traversal(
+            down_match_dict={'constant-declarations': lambda x: self._gen_constants(collect_constants(x))}
+        )
+
         term.foreach(
             pre_rules=(
-                Rule(TreePattern(pattern=('label-declarations',), parent='declarations'),
-                     lambda decl: self._create_labels_names(collect_declared_labels(decl))),
                 Rule(TreePattern(pattern=('PROGRAM', 'identifier', ';', 'block', '.'), parent='program'),
                      lambda matched_program:
-                     asm.write(self._gen_program_header(get_identifier_leaf_token(matched_program[1]).label()))),
-                Rule(TreePattern(pattern=('unsigned-integer', ':', 'statement'), parent='statement'),
-                     lambda labeled_stmt: asm.write(
-                         self._gen_label(
-                             self._labels_table[get_unsigned_integer_leaf_token(labeled_stmt[0]).code()]))),
-                Rule(TreePattern(pattern=('GOTO', 'unsigned-integer', ';'), parent='statement'),
-                     lambda goto_stmt: asm.write(
-                         self._gen_goto(self._labels_table[get_unsigned_integer_leaf_token(goto_stmt[1]).code()]))),
+                     self._asm.write(self._gen_program_header(get_identifier_leaf_token(matched_program[1]).label()))),
                 Rule(TreePattern(pattern=('statements-list',), parent='statements-list'),
-                     lambda stmts_list: asm.write(self._gen_emty_stmt_list_nop(stmts_list[0])))
+                     lambda stmts_list: self._asm.write(self._gen_emty_stmt_list_nop(stmts_list[0])))
             ),
             post_rules=(
                 Rule(TreePattern(pattern=('PROGRAM', 'identifier', ';', 'block', '.'), parent='program'),
                      lambda matched_program:
-                     asm.write(self._gen_program_footer(get_identifier_leaf_token(matched_program[1]).label()))),
+                     self._asm.write(self._gen_program_footer(get_identifier_leaf_token(matched_program[1]).label()))),
             )
         )
 
-        asm.flush()
-        return asm.getvalue()
+        self._asm.flush()
+        return self._asm.getvalue()
 
     def _create_labels_names(self, labels):
         for label in labels:
@@ -53,11 +49,14 @@ class SignalAsmGenerator(object):
                 asm_label_name = generate_random_string(6) + label.label()
             self._labels_table[label.code()] = asm_label_name
 
-    def _gen_goto(self, label_name):
-        return '%sJMP %s\n' % (gen_indent(self._instruction_indent), label_name)
+    def _gen_constants(self, constants):
+        self._asm.write('_DATA SEGMENT\n')
+        for identifier, constant_init in constants.items():
+            init_value = evaluate_constant(constant_init)
+            self._asm.write('%s%s %s %s\n' % (gen_indent(self._instruction_indent), identifier, constant_type(init_value),
+                                            init_value))
+        self._asm.write('_DATA ENDS\n')
 
-    def _gen_label(self, label_name):
-        return '%s%s:\n' % (gen_indent(self._labels_indent), label_name)
 
     @staticmethod
     def _gen_program_header(proc_name):

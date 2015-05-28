@@ -16,7 +16,7 @@ class CompilingError(object):
 
     def what(self):
         col, line = self._pos.position()
-        return "%s. Column %d, line %d." % (self._msg, col, line)
+        return "%s. Line %d, column %d." % (self._msg, line, col)
 
 
 def dump_errors(errors, stream=stderr):

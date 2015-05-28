@@ -7,6 +7,13 @@
 
 PROGRAM TEST;
 CONST N = 10;
+      MIN = -128;
+      MAX = +127;
+      X = -255#255;
+      Y = +2#+100;
+      Z = 3#14;
+      L = -5#-5;
+      T = 15;
 
 BEGIN
 

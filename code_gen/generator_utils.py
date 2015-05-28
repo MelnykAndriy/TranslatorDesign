@@ -1,3 +1,5 @@
+from signal_parser import Rule, TreePattern
+
 __author__ = 'mandriy'
 
 from signal_parser.term import Term, EmptyNode
@@ -28,12 +30,28 @@ def is_empty_stmt_list(stmt_list):
         isinstance(stmt_list.children()[0], EmptyNode)
 
 
-def collect_declared_labels(label_declaration):
-    declared_labels = []
-    label_declaration_term = Term(label_declaration[0])
+def evaluate_constant(constant):
+    value = 1
 
-    label_declaration_term.sort_traversal(
-        up_match_dict={'unsigned-integer':
-                       lambda label: declared_labels.append(get_unsigned_integer_leaf_token(label))}
+    return value
+
+
+def constant_type(constant_value):
+
+    return 'dd'
+
+
+def collect_constants(constants_declaration):
+    constants = {}
+    constants_declaration_term = Term(constants_declaration)
+
+    def save_constant(constant_decl):
+        constants[get_identifier_leaf_token(constant_decl[0]).label()] = constant_decl[2]
+
+    constants_declaration_term.foreach(
+        pre_rules=(
+            Rule(TreePattern(pattern=('identifier', '=', 'constant', ';'), parent='constant-declaration'),
+                 save_constant),
+        )
     )
-    return declared_labels
+    return constants

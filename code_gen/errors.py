@@ -12,10 +12,15 @@ class SemanticError(utils.errors.CompilingError):
         return 'Semantic Error : %s' % super(SemanticError, self).what()
 
 
-class DuplicateLabelName(SemanticError):
+class CollisionWithProgramName(SemanticError):
 
     def __init__(self, file_coords):
-        super(DuplicateLabelName, self).__init__('Label with such name is already defined', file_coords)
+        super(CollisionWithProgramName, self).__init__('Program is already has such name', file_coords)
+
+class DuplicateConstantName(SemanticError):
+
+    def __init__(self, file_coords):
+        super(DuplicateConstantName, self).__init__('Constant with such name is already defined', file_coords)
 
 
 class GotoUnresolvedLabel(SemanticError):

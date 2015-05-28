@@ -32,9 +32,9 @@ args_parser.add_argument('-o',
 args_parser.add_argument('-td',
                          metavar='dot filename',
                          action='store',
-                         dest='tree_dot_filename',
-                         default=None,
-                         help='Store parser result to file in dot format.')
+                         dest='tree_image',
+                         default='tree',
+                         help='Creates an image with syntax tree.')
 
 compiler_arguments = args_parser.parse_args(sys.argv[1:])
 
@@ -51,8 +51,7 @@ term = parser.parse_file(compiler_arguments.source_file)
 dump_errors(parser.errors())
 if term is not None:
 
-    if compiler_arguments.tree_dot_filename:
-        term_to_dot(term).write_dot(compiler_arguments.tree_dot_filename)
+    term_to_dot(term).write_jpeg(compiler_arguments.tree_image + ".jpeg")
 
     if not checker.check(term):
         dump_errors(checker.errors())
