@@ -4,37 +4,38 @@
 
 <signal-program> --> <program>
 
-<program> --> PROGRAM <procedure-identifier> ;
-                <block> .
-                
+<program> --> PROCEDURE <procedure-identifier> <parameters-list> ;
+                <block> ;
+
+<parameters-list> --> ( <variable-identifier> <identifiers-list> ) | <empty>
+
+<identifiers-list> --> , <variable-identifier> <identifiers-list> | <empty>
+
 <block> --> <declarations> 
             BEGIN
                 <statements-list>
             END
-               
-<declarations> --> <constant-declarations>
 
-<constant-declarations> --> CONST <constant-declarations-list> | <empty>
+<declarations> --> <label-declarations>
 
-<constant-declarations-list> --> <constant-declaration> <constant-declarations-list> | <empty>
+<label-declarations> --> LABEL <unsigned-integer> <labels-list> ; |  <empty>
 
-<constant-declaration> --> <constant-identifier> = <constant> ; 
+<labels-list> --> , <unsigned-integer> <labels-list> | <empty>
 
-<constant> --> <sign> <unsigned-constant>
+<statements-list> --> <statement> <statements-list> | <empty>
 
-<statements-list> --> <empty>
+<statement> --> <unsigned-integer> : <statement>
+                | GOTO <unsigned-integer> ;
+                | LINK <variable-identifier> , <unsigned-integer> ;
+                | RETURN ;
+                | ;
+                | ($ <assembly-insert-file-identifier> $)
+
+<variable-identifier> --> <identifier>
 
 <procedure-identifier> --> <identifier>
 
-<constant-identifier> --> <identifier> 
-
-<unsigned-constant> --> <integer-part><fractional-part>
-
-<integer-part> --> <unsigned-integer>
-
-<fractional-part> --> #<sign><unsigned-integer> | <empty>
-
-<sign> --> + | - | <empty>
+<assembly-insert-file-identifier> --> <identifier>
 
 # lexer
 
