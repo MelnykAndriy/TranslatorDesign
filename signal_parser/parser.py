@@ -61,19 +61,15 @@ class SignalParser(object):
         return self._unique_by_and_production(
             'program',
             prev_node,
-            ErrorCase(self._leaf_production(self._exact_code_leaf(kw.PROGRAM)),
+            ErrorCase(self._leaf_production(self._exact_code_leaf(kw.PROCEDURE)),
                       StandardErrorHandler(make_error_case(ExpectedToken, 'PROGRAM keyword'))),
-            ErrorCase(self._procedure_identifier, StandardErrorHandler(make_error_case(MissedToken, 'Program name'))),
+            ErrorCase(self._procedure_identifier, StandardErrorHandler(make_error_case(MissedToken, 'Procedure name'))),
+            self._parameters_list,
             ErrorCase(self._leaf_production(self._exact_code_leaf(dm.SEMICOLON)),
                       StandardErrorHandler(make_error_case(MissedToken, 'Semicolon'))),
             self._block,
-            ErrorCase(self._leaf_production(self._exact_code_leaf(dm.DOT)),
-                      StandardErrorHandler(make_error_case(MissedToken, 'Dot'))))
-
-    def _procedure_identifier(self, prev_node):
-        return self._unique_by_and_production('procedure-identifier',
-                                              prev_node,
-                                              self._identifier)
+            ErrorCase(self._leaf_production(self._exact_code_leaf(dm.SEMICOLON)),
+                      StandardErrorHandler(make_error_case(MissedToken, 'Semicolon'))))
 
     def _block(self, prev_node):
         return self._unique_by_and_production(
@@ -87,89 +83,116 @@ class SignalParser(object):
                       StandardErrorHandler(make_error_case(ExpectedToken, 'END keyword')))
         )
 
+    def _parameters_list(self, prev_node):
+        return self._unique_by_or(
+            'parameters-list',
+            prev_node,
+            self._create_raw_and(
+                self._leaf_production(self._exact_code_leaf(dm.OPEN_PARENTHESIS)),
+                self._variable_identifier,
+                self._identifiers_list,
+                self._leaf_production(self._exact_code_leaf(dm.CLOSE_PARENTHESIS)),
+            ),
+            self._empty_leaf
+        )
+
+    def _identifiers_list(self, prev_node):
+        return self._unique_by_or(
+            'identifiers-list',
+            prev_node,
+            self._create_raw_and(
+                self._leaf_production(self._exact_code_leaf(dm.COMMA)),
+                self._variable_identifier,
+                self._identifiers_list
+            ),
+            self._empty_leaf
+
+        )
+
     def _declarations(self, prev_node):
         return self._unique_by_and_production('declarations',
                                               prev_node,
-                                              self._constant_declarations)
+                                              self._label_declarations)
 
-    def _constant_declarations(self, prev_node):
+    def _statement(self, prev_node):
         return self._unique_by_or(
-            'constant-declarations',
+            'statement',
             prev_node,
-            self._create_raw_and(self._leaf_production(self._exact_code_leaf(kw.CONST)),
-                                 self._constant_declarations_list),
-            self._empty_leaf)
+            self._create_raw_and(
+                self._unsigned_integer,
+                ErrorCase(self._leaf_production(self._exact_code_leaf(dm.COLON)),
+                          StandardErrorHandler(make_error_case(MissedToken, 'Colon'))),
+                ErrorCase(self._statement,
+                          StandardErrorHandler(make_error_case(EmptyLabeledStatement)))
+            ),
+            self._create_raw_and(
+                self._leaf_production(self._exact_code_leaf(kw.GOTO)),
+                ErrorCase(self._unsigned_integer, StandardErrorHandler(make_error_case(GotoStatementArgument))),
+                ErrorCase(self._leaf_production(self._exact_code_leaf(dm.SEMICOLON)),
+                          StandardErrorHandler(make_error_case(MissedToken, 'Goto statement semicolon')))
+            ),
+            self._create_raw_and(
+                self._leaf_production(self._exact_code_leaf(kw.RETURN)),
+                ErrorCase(self._leaf_production(self._exact_code_leaf(dm.SEMICOLON)),
+                          StandardErrorHandler(make_error_case(MissedToken, 'Semicolon'))),
+            ),
+            self._create_raw_and(
+                self._leaf_production(self._exact_code_leaf(dm.SEMICOLON))
+            ),
+            self._create_raw_and(
+                self._leaf_production(self._exact_code_leaf(dm.ASSEMBLY_INSERT_BEGIN)),
+                ErrorCase(self._assembly_insert_file_identifier,
+                          StandardErrorHandler(make_error_case(MissedToken, 'Assembly insert file'))),
+                ErrorCase(self._leaf_production(self._exact_code_leaf(dm.ASSEMBLY_INSERT_END)),
+                          StandardErrorHandler(make_error_case(MissedToken, 'Finish of assembly insertion'))),
+            )
 
-    def _constant_declarations_list(self, prev_node):
-        return self._unique_by_or(
-            'constants-declarations-list',
-            prev_node,
-            self._create_raw_and(self._constant_declaration,
-                                 self._constant_declarations_list),
-            self._empty_leaf
-        )
-
-    def _constant_declaration(self, prev_node):
-        return self._unique_by_and_production(
-            'constant-declaration',
-            prev_node,
-            self._constant_identifier,
-            ErrorCase(self._leaf_production(self._exact_code_leaf(dm.EQUAL)),
-                      StandardErrorHandler(make_error_case(ExpectedToken, '='))),
-            ErrorCase(self._constant, StandardErrorHandler(make_error_case(MissedToken, 'Constant value'))),
-            ErrorCase(self._leaf_production(self._exact_code_leaf(dm.SEMICOLON)),
-                      StandardErrorHandler(make_error_case(MissedToken, 'Semicolon')))
-        )
-
-    def _constant(self, prev_node):
-        return self._unique_by_and_production(
-            'constant',
-            prev_node,
-            self._sign,
-            self._unsigned_constant
-        )
-
-    def _sign(self, prev_node):
-        return self._unique_by_or(
-            'sign',
-            prev_node,
-            self._leaf_production(self._exact_code_leaf(dm.MINUS)),
-            self._leaf_production(self._exact_code_leaf(dm.PLUS)),
-            self._empty_leaf
-        )
-
-    def _unsigned_constant(self, prev_node):
-        return self._unique_by_and_production(
-            'unsigned-constant',
-            prev_node,
-            self._integer_part,
-            self._fractional_part
-        )
-
-    def _integer_part(self, prev_node):
-        return self._unique_by_and_production(
-            'integer-part',
-            prev_node,
-            self._unsigned_integer
-        )
-
-    def _fractional_part(self, prev_node):
-        return self._unique_by_or(
-            'fractional-part',
-            prev_node,
-            self._leaf_production(self._exact_code_leaf(dm.SHARP)),
-            self._sign,
-            ErrorCase(self._unsigned_integer,
-                      StandardErrorHandler(make_error_case(ExpectedToken, 'Number')))
         )
 
     def _statements_list(self, prev_node):
         return self._unique_by_or('statements-list',
                                   prev_node,
+                                  self._create_raw_and(self._statement,
+                                                       self._statements_list),
                                   self._empty_leaf)
 
-    def _constant_identifier(self, prev_node):
-        return self._unique_by_and_production('constant-identifier',
+    def _label_declarations(self, prev_node):
+        return self._unique_by_or(
+            'label-declarations',
+            prev_node,
+            self._create_raw_and(
+                self._leaf_production(self._exact_code_leaf(kw.LABEL)),
+                ErrorCase(self._unsigned_integer, StandardErrorHandler(make_error_case(InvalidLabelDefinition))),
+                self._labels_list,
+                ErrorCase(self._leaf_production(self._exact_code_leaf(dm.SEMICOLON)),
+                          StandardErrorHandler(make_error_case(MissedToken, 'Semicolon')))
+            ),
+            self._empty_leaf)
+
+    def _labels_list(self, prev_node):
+        return self._unique_by_or(
+            'labels-list',
+            prev_node,
+            self._create_raw_and(
+                self._leaf_production(self._exact_code_leaf(dm.COMMA)),
+                ErrorCase(self._unsigned_integer, StandardErrorHandler(make_error_case(InvalidLabelDefinition))),
+                self._labels_list
+            ),
+            self._empty_leaf
+        )
+
+    def _variable_identifier(self, prev_node):
+        return self._unique_by_and_production('variable-identifier',
+                                              prev_node,
+                                              self._identifier)
+
+    def _procedure_identifier(self, prev_node):
+        return self._unique_by_and_production('procedure-identifier',
+                                              prev_node,
+                                              self._identifier)
+
+    def _assembly_insert_file_identifier(self, prev_node):
+        return self._unique_by_and_production('assembly-insert-file-identifier',
                                               prev_node,
                                               self._identifier)
 
@@ -264,15 +287,11 @@ class SignalParser(object):
                    'procedure-identifier': _procedure_identifier,
                    'block': _block,
                    'declarations': _declarations,
-                   'constant-declarations': _constant_declarations,
-                   'constant-declarations-list': _constant_declarations_list,
-                   'constant-declaration': _constant_declaration,
-                   'constant': _constant,
-                   'sign': _sign,
-                   'unsigned-constant': _unsigned_constant,
-                   'integer-part': _integer_part,
-                   'fractional-part': _fractional_part,
-                   'constant-identifier': _constant_identifier,
+                   'statement': _statement,
                    'statements-list': _statements_list,
+                   'label-declarations': _label_declarations,
+                   'labels-list': _labels_list,
+                   'variable-identifier': _variable_identifier,
+                   'assembly-insert-file-identifier': _assembly_insert_file_identifier,
                    'identifier': _identifier,
                    'unsigned-integer': _unsigned_integer}

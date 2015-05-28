@@ -2,8 +2,6 @@ __author__ = 'mandriy'
 
 import argparse
 import sys
-from code_gen.semantic_checker import SemanticChecker
-from code_gen.generator import SignalAsmGenerator
 from signal_parser.parser import SignalParser
 from signal_parser.term import term_to_dot
 from utils.errors import dump_errors
@@ -22,19 +20,12 @@ args_parser.add_argument('source_file',
                          type=str,
                          help='Source file to be compiled.')
 
-args_parser.add_argument('-o',
-                         metavar='filename',
-                         action='store',
-                         dest='output_file',
-                         help='Compiler output file.',
-                         default=None)
-
 args_parser.add_argument('-td',
                          metavar='dot filename',
                          action='store',
-                         dest='tree_dot_filename',
-                         default=None,
-                         help='Store parser result to file in dot format.')
+                         dest='tree',
+                         default='tree',
+                         help='Tree image.')
 
 compiler_arguments = args_parser.parse_args(sys.argv[1:])
 
@@ -44,27 +35,12 @@ def say_goodbye():
     exit()
 
 parser = SignalParser()
-checker = SemanticChecker()
-generator = SignalAsmGenerator()
 
 term = parser.parse_file(compiler_arguments.source_file)
 dump_errors(parser.errors())
 if term is not None:
 
-    if compiler_arguments.tree_dot_filename:
-        term_to_dot(term).write_dot(compiler_arguments.tree_dot_filename)
-
-    if not checker.check(term):
-        dump_errors(checker.errors())
-        say_goodbye()
-
-    generated_asm_content = generator.generate(term, parser.identifiers(), parser.literals())
-
-    if compiler_arguments.output_file is None:
-        compiler_arguments.output_file = gen_asm_filename(compiler_arguments.source_file)
-
-    with open(compiler_arguments.output_file, 'w') as output_file:
-        output_file.write(generated_asm_content)
+    term_to_dot(term).write_jpg(compiler_arguments.tree + '.jpg')
 
 else:
     say_goodbye()
