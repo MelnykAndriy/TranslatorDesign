@@ -31,14 +31,24 @@ def is_empty_stmt_list(stmt_list):
 
 
 def evaluate_constant(constant):
-    value = 1
 
-    return value
+    def apply_sign(sign, value):
+        if sign.match('-'):
+            return -value
+        return value
 
+    int_constant = constant.match('sign', 'unsigned-integer')
+    if int_constant:
+        return apply_sign(int_constant[0], int(get_unsigned_integer_leaf_token(int_constant[1]).label()))
 
-def constant_type(constant_value):
+    float_constant = constant.match('sign', 'unsigned-integer', '#', 'sign', 'unsigned-integer')
+    if float_constant:
+        int_part = float(get_unsigned_integer_leaf_token(float_constant[1]).label())
+        fractional_str = get_unsigned_integer_leaf_token(float_constant[4]).label()
+        fractional_part = float(fractional_str) / float((10**len(fractional_str)))
+        return apply_sign(float_constant[0], int_part) + apply_sign(float_constant[3], fractional_part)
 
-    return 'dd'
+    raise Exception('Bad constant value')
 
 
 def collect_constants(constants_declaration):

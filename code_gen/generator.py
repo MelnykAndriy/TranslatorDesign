@@ -50,13 +50,8 @@ class SignalAsmGenerator(object):
             self._labels_table[label.code()] = asm_label_name
 
     def _gen_constants(self, constants):
-        self._asm.write('_DATA SEGMENT\n')
         for identifier, constant_init in constants.items():
-            init_value = evaluate_constant(constant_init)
-            self._asm.write('%s%s %s %s\n' % (gen_indent(self._instruction_indent), identifier, constant_type(init_value),
-                                            init_value))
-        self._asm.write('_DATA ENDS\n')
-
+            self._asm.write('%s EQU %s\n' % (identifier, evaluate_constant(constant_init)))
 
     @staticmethod
     def _gen_program_header(proc_name):
